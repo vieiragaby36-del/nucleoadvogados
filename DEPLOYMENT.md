@@ -4,7 +4,7 @@ O site público é estático. Na Netlify, a pasta de publicação é `public` e 
 
 ## Antes da publicação definitiva
 
-1. A primeira conta criada com `ambientedeproducaodeapp@gmail.com` recebe a função `owner` pelo gatilho do banco. A titular deve escolher sua própria senha e confirmar o link recebido; não compartilhar senha com terceiros.
+1. A conta `adrianoguimaraes.sp@gmail.com` recebe a função `owner` pelo gatilho do banco. O titular deve escolher sua própria senha e confirmar o link recebido; não compartilhar senha com terceiros.
 2. Em Supabase → Authentication → URL Configuration, definir a Site URL como a origem HTTPS publicada e incluir `https://nucleo-advogados.netlify.app/crm/` nas Redirect URLs (mais o domínio próprio, caso exista). O e-mail de confirmação e a recuperação de senha retornam a essa rota.
 3. Em Supabase → Authentication → SMTP Settings, configurar e testar um servidor SMTP próprio com remetente verificado. O provedor padrão do Supabase só envia para membros da equipe do projeto e tem limite reduzido; sem SMTP próprio, cadastro e recuperação de clientes não estão prontos para produção. Não inserir credenciais SMTP no repositório nem no navegador do cliente.
 4. Confirmar telefones, WhatsApp, endereços, nome e OAB antes da divulgação.
