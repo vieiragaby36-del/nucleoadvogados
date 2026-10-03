@@ -8,7 +8,7 @@ if (configured) {
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
 const date = (value) => value ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${String(value).slice(0, 10)}T12:00:00Z`)) : "Sem data";
-const state = { session: null, profile: null, contacts: [], cases: [], tasks: [], team: [], lawyers: [], requestProfiles: [], requests: [], documents: [], assignments: [], view: "dashboard", search: "", editing: null, entity: null };
+const state = { session: null, profile: null, contacts: [], cases: [], tasks: [], team: [], lawyers: [], requestProfiles: [], requests: [], documents: [], assignments: [], view: "dashboard", search: "", editing: null, entity: null, signupDraft: null };
 let recoveryActive = /(?:^|[&#?])type=recovery(?:&|$)/.test(`${location.search}${location.hash}`);
 const staff = () => ["owner", "staff"].includes(state.profile?.role);
 const authRedirectUrl = () => new URL("/crm/", location.origin).toString();
@@ -24,6 +24,7 @@ function showAuth() {
   $("#portal").classList.add("hidden");
   $("#auth").classList.remove("hidden");
   $("#recovery-form").classList.add("hidden");
+  $("#signup-form").classList.add("hidden");
   $("#auth-form").classList.remove("hidden");
   $(".auth-actions").classList.remove("hidden");
 }
@@ -33,6 +34,7 @@ function showRecovery() {
   $("#portal").classList.add("hidden");
   $("#auth").classList.remove("hidden");
   $("#auth-form").classList.add("hidden");
+  $("#signup-form").classList.add("hidden");
   $(".auth-actions").classList.add("hidden");
   $("#recovery-form").classList.remove("hidden");
   $("#auth-title").textContent = "Definir nova senha";
@@ -43,12 +45,13 @@ function showRecovery() {
 function setAuthMode(mode) {
   const content = {
     login: ["Entrar no portal", "Use o e-mail cadastrado junto ao escritório.", "Entrar"],
-    signup: ["Criar acesso", "Cadastre seu e-mail e confirme a mensagem recebida. Depois, preencha o formulário de cliente.", "Criar minha conta"],
+    signup: ["Criar acesso", "Informe seu e-mail e senha para começar. Em seguida, você preencherá seus dados antes da confirmação por e-mail.", "Continuar cadastro"],
     reset: ["Recuperar senha", "Enviaremos um link seguro para o seu e-mail.", "Enviar link"]
   }[mode];
   $("#auth-form").dataset.mode = mode;
   $("#auth-form").classList.remove("hidden");
   $("#recovery-form").classList.add("hidden");
+  $("#signup-form").classList.add("hidden");
   $(".auth-actions").classList.remove("hidden");
   $("#auth-title").textContent = content[0];
   $("#auth-copy").textContent = content[1];
@@ -66,6 +69,17 @@ async function submitAuth(event) {
   const email = $("#auth-email").value.trim().toLowerCase();
   const password = $("#auth-password").value;
   const button = $("#auth-submit");
+  if (mode === "signup") {
+    state.signupDraft = { email, password };
+    $("#auth-form").classList.add("hidden");
+    $("#signup-form").classList.remove("hidden");
+    $(".auth-actions").classList.add("hidden");
+    $("#auth-title").textContent = "Complete seu cadastro";
+    $("#auth-copy").textContent = "Preencha seus dados. Só depois enviaremos a confirmação para o seu e-mail.";
+    showMessage("#auth-message");
+    $("#signup-form").elements.full_name.focus();
+    return;
+  }
   button.disabled = true;
   try {
     let result;
@@ -73,11 +87,40 @@ async function submitAuth(event) {
     else if (mode === "reset") result = await supabase.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl() });
     else result = await supabase.auth.signInWithPassword({ email, password });
     if (result.error) throw result.error;
-    if (mode === "signup") {
-      if (result.data?.session) await handleSession(result.data.session);
-      else showMessage("#auth-message", "Cadastro recebido. Abra o e-mail de confirmação e use o mesmo navegador para concluir o acesso. Confira também o spam.", "success");
-    }
     if (mode === "reset") showMessage("#auth-message", "Se existir uma conta para este e-mail, enviaremos o link de recuperação. Confira spam e aguarde alguns minutos antes de solicitar outro.", "success");
+  } catch (error) {
+    showMessage("#auth-message", authError(error.message), "error");
+  } finally { button.disabled = false; }
+}
+
+async function submitSignup(event) {
+  event.preventDefault();
+  if (!supabase) return showMessage("#auth-message", "O portal ainda aguarda a configuração do banco de dados.", "error");
+  if (!state.signupDraft) return setAuthMode("signup");
+  const button = $("#signup-submit");
+  button.disabled = true;
+  try {
+    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const data = {
+      full_name: String(values.full_name || "").trim(),
+      phone: String(values.phone || "").trim(),
+      subject: String(values.subject || "").trim(),
+      description: String(values.description || "").trim()
+    };
+    const result = await supabase.auth.signUp({
+      email: state.signupDraft.email,
+      password: state.signupDraft.password,
+      options: { emailRedirectTo: authRedirectUrl(), data }
+    });
+    if (result.error) throw result.error;
+    state.signupDraft = null;
+    $("#auth-password").value = "";
+    if (result.data?.session) return handleSession(result.data.session);
+    $("#signup-form").classList.add("hidden");
+    $("#auth-form").classList.remove("hidden");
+    $(".auth-actions").classList.remove("hidden");
+    setAuthMode("login");
+    showMessage("#auth-message", "Cadastro recebido. Agora confirme o e-mail enviado para liberar seu acesso ao portal. Confira também o spam.", "success");
   } catch (error) {
     showMessage("#auth-message", authError(error.message), "error");
   } finally { button.disabled = false; }
@@ -149,6 +192,14 @@ async function loadPortal() {
       ]);
       if (requests.error || documents.error) throw requests.error || documents.error;
       state.requests = requests.data || []; state.documents = documents.data || [];
+      const metadata = state.session.user.user_metadata || {};
+      if (!state.requests.length && metadata.full_name && metadata.subject) {
+        const created = await supabase.from("client_requests").insert({ user_id: userId, full_name: String(metadata.full_name).trim(), phone: String(metadata.phone || "").trim(), subject: String(metadata.subject).trim(), description: String(metadata.description || "").trim() });
+        if (created.error && !/duplicate|unique/i.test(created.error.message || "")) throw created.error;
+        const refreshed = await supabase.from("client_requests").select("*").eq("user_id", userId);
+        if (refreshed.error) throw refreshed.error;
+        state.requests = refreshed.data || [];
+      }
     } else {
       const [contacts, cases, tasks, team, lawyers, requestProfiles, requests, documents, assignments] = await Promise.all([
         staff() ? supabase.from("contacts").select("*").order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
@@ -440,12 +491,13 @@ document.addEventListener("click", async (event) => {
 });
 
 document.addEventListener("submit", async (event) => {
+  if (event.target.id === "signup-form") { await submitSignup(event); return; }
   if (event.target.id === "intake-form") { event.preventDefault(); await saveIntake(event.target); }
   if (event.target.id === "document-form") { event.preventDefault(); await uploadDocument(event.target); }
 });
 
 document.querySelectorAll("[data-auth-mode]").forEach((button) => button.addEventListener("click", () => setAuthMode(button.dataset.authMode)));
-$("#auth-form").addEventListener("submit", submitAuth); $("#record-form").addEventListener("submit", saveRecord);
+$("#auth-form").addEventListener("submit", submitAuth); $("#signup-back").addEventListener("click", () => { state.signupDraft = null; setAuthMode("signup"); }); $("#record-form").addEventListener("submit", saveRecord);
 $("#recovery-form").addEventListener("submit", submitRecovery);
 $("#search").addEventListener("input", (event) => { state.search = event.target.value.trim().toLowerCase(); render(); });
 $("#menu-toggle").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
@@ -461,3 +513,4 @@ else {
   const { data } = await supabase.auth.getSession(); await handleSession(data.session);
   if (!data.session) showUrlError();
 }
+
