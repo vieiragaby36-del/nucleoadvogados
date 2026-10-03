@@ -1,6 +1,17 @@
 # Núcleo Advogados — publicação
 
-O site público é estático. Na Netlify, a pasta de publicação é `public` e não há comando de build; os redirecionamentos e cabeçalhos estão em `netlify.toml`. O CRM em `/crm/` usa Supabase Auth e políticas RLS.
+O site público é estático. A pasta de publicação é `public` e não há comando de build. Os arquivos `_redirects` e `_headers` nessa pasta funcionam no Cloudflare Pages (e mantêm compatibilidade com a Netlify). O CRM em `/crm/` usa Supabase Auth e políticas RLS.
+
+## Cloudflare Pages
+
+Use a integração com o repositório GitHub `vieiragaby36-del/nucleoadvogados` com estas configurações:
+
+- Framework preset: `None`
+- Build command: deixar vazio
+- Build output directory: `public`
+- Root directory: `/`
+
+O `_redirects` entrega `/home.html` na rota `/` e mantém `/crm/` como área do cliente. Depois de criar o projeto, atualize a Site URL e as Redirect URLs do Supabase para o endereço `*.pages.dev` escolhido (e para o domínio próprio, se houver). Também atualize o canonical, Open Graph, JSON-LD, sitemap e robots para o endereço final antes de solicitar indexação.
 
 ## Antes da publicação definitiva
 

@@ -1,0 +1,3 @@
+# Cloudflare Pages / Netlify-compatible routing
+/ /home.html 200
+/crm /crm/ 301
