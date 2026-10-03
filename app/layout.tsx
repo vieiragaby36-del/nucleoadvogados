@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Dr. Mauro Cesar Ramos | Ramos Advocacia",
-  description: "Atuação jurídica estratégica e área protegida para clientes e equipe da Ramos Advocacia.",
+  title: "Núcleo Advogados | Consultoria jurídica empresarial",
+  description: "Consultoria jurídica empresarial e advocacia estratégica para pessoas e empresas em São Paulo e Brasília.",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
   },
 };
 
