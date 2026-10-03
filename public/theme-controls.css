@@ -19,3 +19,9 @@ section[id]{scroll-margin-top:88px}
 @media(max-width:540px){.topbar{padding-inline:14px;gap:7px}.topbar .brand{width:110px;min-width:110px}.header-cta{padding:8px 7px}.client-label-full{display:none}.client-label-short{display:inline}.language-control{padding-left:6px;gap:3px}.language-icon{width:13px;height:13px}}
 @media(max-width:375px){.topbar .brand{width:92px;min-width:92px}.language-control{border-left:0;padding-left:0}.topbar{gap:6px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+.hero::before{content:"";position:absolute;inset:-4%;background:url('/office-building.webp') center 54%/cover no-repeat;opacity:.36;transform:scale(1.08);animation:hero-film 30s ease-in-out infinite alternate;pointer-events:none}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,20,38,.96) 0%,rgba(7,20,38,.78) 44%,rgba(7,20,38,.29) 100%);pointer-events:none}
+.hero-copy,.hero-foot{z-index:2}
+@keyframes hero-film{from{transform:scale(1.08) translateX(-1.5%)}to{transform:scale(1.16) translateX(1.5%)}}
+@media(max-width:820px){.hero::before{background-position:56% center;opacity:.27}.hero::after{background:linear-gradient(90deg,rgba(7,20,38,.94),rgba(7,20,38,.67))}}
+@media(prefers-reduced-motion:reduce){.hero::before{animation:none}}

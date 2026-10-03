@@ -97,3 +97,9 @@ input,select,textarea{background:#fff;color:var(--text);border-color:#c9d5e1}
 :where(a,button,input,select,textarea):focus-visible{outline:2px solid #9a6b21;outline-offset:2px}
 @media(max-width:760px){.auth-intro{min-height:0;padding:20px 24px 12px;gap:16px}.auth-intro .brand{width:min(220px,55vw)}.auth-intro h1{font-size:clamp(29px,7.5vw,40px);line-height:1.08;margin:8px 0}.auth-intro>div>p:last-child{font-size:14px;line-height:1.45;margin:8px 0}.auth-panel{padding:12px 16px 28px;place-items:stretch}.auth-card{width:100%;max-width:500px;justify-self:center;padding:24px}.client-item{padding:16px}.assignment label{min-width:100%}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+.intake-leads-head{padding:14px 20px;background:var(--panel2);display:flex;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid var(--line);font-size:13px;color:#40556b}
+.intake-lead{padding:15px 20px;display:flex;justify-content:space-between;align-items:center;gap:16px;border-top:1px solid var(--line)}
+.intake-lead strong,.intake-lead small{display:block;overflow-wrap:anywhere}
+.intake-lead small{color:var(--muted);margin-top:4px}
+.intake-lead .badge{flex:none}
+@media(max-width:560px){.intake-lead{align-items:flex-start;flex-direction:column;gap:8px}.intake-leads-head{flex-wrap:wrap}}

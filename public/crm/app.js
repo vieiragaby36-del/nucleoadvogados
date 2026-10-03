@@ -156,7 +156,7 @@ async function loadPortal() {
         supabase.from("tasks").select("*").order("due_at", { ascending: true }),
         profile.role === "owner" ? supabase.from("team_invites").select("email,created_at").order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
         profile.role === "owner" ? supabase.from("profiles").select("id,email,full_name,role").eq("role","staff") : Promise.resolve({ data: [] }),
-        profile.role === "owner" ? supabase.from("profiles").select("id,email") : Promise.resolve({ data: [] }),
+        profile.role === "owner" ? supabase.from("profiles").select("id,email,full_name,role,contact_id") : Promise.resolve({ data: [] }),
         profile.role === "owner" ? supabase.from("client_requests").select("*").order("created_at", { ascending: false }) : supabase.from("client_requests").select("*").eq("user_id",userId),
         supabase.from("client_documents").select("*").order("created_at", { ascending: false }),
         staff() ? supabase.from("client_assignments").select("*") : Promise.resolve({ data: [] })
@@ -216,16 +216,22 @@ function renderHead() {
 }
 
 const contactName = (id) => state.contacts.find((item) => item.id === id)?.name || "Cliente";
+const intakeLeads = () => state.profile.role === "owner" ? state.requestProfiles.filter((profile) => profile.role === "pending" && !state.contacts.some((contact) => contact.email?.toLowerCase() === profile.email?.toLowerCase())) : [];
+const intakeLeadRow = (profile) => {
+  const request = state.requests.find((item) => item.user_id === profile.id);
+  return `<article class="intake-lead"><div><strong>${esc(profile.full_name || profile.email)}</strong><small>${esc(profile.email)} · ${request ? "Formulário enviado" : "Aguardando formulário"}</small></div><span class="badge">${request ? esc(request.status) : "Cadastro iniciado"}</span></article>`;
+};
 const filtered = (items, fields) => !state.search ? items : items.filter((item) => fields.some((field) => String(field(item) || "").toLowerCase().includes(state.search)));
 const empty = (message) => `<p class="empty">${message}</p>`;
 
 function renderDashboard() {
   const leads = state.contacts.filter((c) => c.kind === "lead");
+  const registrations = intakeLeads();
   const clients = state.contacts.filter((c) => c.kind === "client");
   const pending = state.tasks.filter((t) => !t.done);
-  const cards = staff() ? [["Leads", leads.length, "Oportunidades cadastradas"], ["Clientes", clients.length, "Clientes ativos"], ["Processos", state.cases.length, "Casos registrados"], ["Tarefas pendentes", pending.length, "Para acompanhar"]] : [["Processos", state.cases.length, "Compartilhados com você"], ["Compromissos", pending.length, "Tarefas em aberto"], ["Concluídos", state.tasks.filter((t) => t.done).length, "Compromissos finalizados"], ["Atualizações", state.cases.length + state.tasks.length, "Itens disponíveis"]];
+  const cards = staff() ? [["Leads", leads.length + registrations.length, "Inclui cadastros iniciados"], ["Clientes", clients.length, "Clientes ativos"], ["Processos", state.cases.length, "Casos registrados"], ["Tarefas pendentes", pending.length, "Para acompanhar"]] : [["Processos", state.cases.length, "Compartilhados com você"], ["Compromissos", pending.length, "Tarefas em aberto"], ["Concluídos", state.tasks.filter((t) => t.done).length, "Compromissos finalizados"], ["Atualizações", state.cases.length + state.tasks.length, "Itens disponíveis"]];
   const stages = ["novo", "em contato", "proposta enviada", "negociação"];
-  const main = staff() ? `<div class="pipeline">${stages.map((stage) => `<div class="pipeline-column"><h3>${stage}<span>${leads.filter((c) => c.stage === stage).length}</span></h3>${leads.filter((c) => c.stage === stage).slice(0, 4).map((c) => `<button class="pipeline-item" data-edit="contact" data-id="${c.id}"><strong>${esc(c.name)}</strong><small>${esc(c.source || "Sem origem")}</small></button>`).join("")}</div>`).join("")}</div>` : recordList(state.cases, "Nenhum processo compartilhado ainda.", (c) => `<div><strong>${esc(c.title)}</strong><small>${esc(c.area || "Área não informada")}</small></div><span></span><span class="badge">${esc(c.status)}</span>`);
+  const main = staff() ? `<div class="pipeline">${stages.map((stage) => `<div class="pipeline-column"><h3>${stage}<span>${leads.filter((c) => c.stage === stage).length}</span></h3>${leads.filter((c) => c.stage === stage).slice(0, 4).map((c) => `<button class="pipeline-item" data-edit="contact" data-id="${c.id}"><strong>${esc(c.name)}</strong><small>${esc(c.source || "Sem origem")}</small></button>`).join("")}</div>`).join("")}</div>${registrations.length ? `<div class="intake-leads-head"><strong>Cadastros iniciados</strong><button type="button" class="row-action" data-view="requests">Ver todos</button></div>${registrations.slice(0, 4).map(intakeLeadRow).join("")}` : ""}` : recordList(state.cases, "Nenhum processo compartilhado ainda.", (c) => `<div><strong>${esc(c.title)}</strong><small>${esc(c.area || "Área não informada")}</small></div><span></span><span class="badge">${esc(c.status)}</span>`);
   $("#workspace").innerHTML = `<div class="kpis">${cards.map(([label, value, note]) => `<div class="card"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`).join("")}</div><div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>${staff() ? "Funil de oportunidades" : "Seus processos"}</h2></div>${main}</section><section class="panel"><div class="panel-head"><h2>Próximos compromissos</h2></div>${recordList(pending.slice(0, 6), "Nenhum compromisso pendente.", (t) => `<div><strong>${esc(t.title)}</strong><small>${staff() ? esc(contactName(t.contact_id)) : "Compartilhado com você"}</small></div><span></span><span class="badge">${date(t.due_at)}</span>`)}</section></div>`;
 }
 
@@ -235,8 +241,9 @@ function recordList(items, message, content, action = "") {
 
 function renderContacts(kind) {
   const items = filtered(state.contacts.filter((c) => c.kind === kind), [(c) => c.name, (c) => c.email, (c) => c.phone, (c) => c.stage, (c) => c.source]);
-  const rows = kind === "client" ? items.length ? `<div class="client-list">${items.map((c) => `<article class="client-item"><div class="client-item-head"><div><strong>${esc(c.name)}</strong><small>${esc(c.email || c.phone || "Sem contato")} · ${esc(c.stage)}</small></div><button class="row-action" type="button" data-edit="contact" data-id="${c.id}" aria-label="Editar cliente ${esc(c.name)}">Editar</button></div>${assignmentControls(c)}</article>`).join("")}</div>` : empty("Nenhum cliente encontrado.") : recordList(items, "Nenhum registro encontrado.", (c) => `<div><strong>${esc(c.name)}</strong><small>${esc(c.email || c.phone || "Sem contato")}</small></div><span>${esc(c.source || "—")}</span><span class="badge">${esc(c.stage)}</span>`, "contact");
-  $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><h2>${kind === "lead" ? "Oportunidades" : "Pessoas atendidas"}</h2><span>${items.length} registros</span></div>${rows}</section>`;
+  const registrations = kind === "lead" ? filtered(intakeLeads(), [(p) => p.full_name, (p) => p.email, (p) => state.requests.find((r) => r.user_id === p.id)?.subject]) : [];
+  const rows = kind === "client" ? items.length ? `<div class="client-list">${items.map((c) => `<article class="client-item"><div class="client-item-head"><div><strong>${esc(c.name)}</strong><small>${esc(c.email || c.phone || "Sem contato")} · ${esc(c.stage)}</small></div><button class="row-action" type="button" data-edit="contact" data-id="${c.id}" aria-label="Editar cliente ${esc(c.name)}">Editar</button></div>${assignmentControls(c)}</article>`).join("")}</div>` : empty("Nenhum cliente encontrado.") : `${items.length ? recordList(items, "", (c) => `<div><strong>${esc(c.name)}</strong><small>${esc(c.email || c.phone || "Sem contato")}</small></div><span>${esc(c.source || "—")}</span><span class="badge">${esc(c.stage)}</span>`, "contact") : ""}${registrations.length ? `<div class="intake-leads-head"><strong>Cadastros pelo portal</strong><button type="button" class="row-action" data-view="requests">Ver cadastros</button></div>${registrations.map(intakeLeadRow).join("")}` : ""}${!items.length && !registrations.length ? empty("Nenhum lead encontrado.") : ""}`;
+  $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><h2>${kind === "lead" ? "Oportunidades" : "Pessoas atendidas"}</h2><span>${items.length + registrations.length} registros</span></div>${rows}</section>`;
 }
 
 function renderCases() {
@@ -286,8 +293,9 @@ function renderDocuments() {
 
 function renderRequests() {
   const items = state.requests.filter((r) => r.status !== "aprovado");
-  $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><h2>Novos cadastros</h2><span>${items.length} aguardando análise</span></div>
-    ${items.length ? `<div class="request-list">${items.map((r) => `<article class="request-card"><div><strong>${esc(r.full_name)}</strong><small>${esc(state.requestProfiles.find((p) => p.id === r.user_id)?.email || "")} · ${esc(r.phone)}</small><p><b>${esc(r.subject)}</b> — ${esc(r.description)}</p><small>${state.documents.filter((d) => d.user_id === r.user_id).length} documento(s) · ${esc(r.status)}</small></div><div class="request-actions"><button class="primary" type="button" data-approve="${r.id}">Aprovar e vincular</button><button class="secondary" type="button" data-request-docs="${r.user_id}">Ver documentos</button></div></article>`).join("")}</div>` : empty("Nenhum pedido aguardando análise.")}</section>`;
+  const incomplete = intakeLeads().filter((profile) => !state.requests.some((request) => request.user_id === profile.id));
+  $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><h2>Novos cadastros</h2><span>${items.length} para análise · ${incomplete.length} aguardando formulário</span></div>
+    ${items.length ? `<div class="request-list">${items.map((r) => `<article class="request-card"><div><strong>${esc(r.full_name)}</strong><small>${esc(state.requestProfiles.find((p) => p.id === r.user_id)?.email || "")} · ${esc(r.phone)}</small><p><b>${esc(r.subject)}</b> — ${esc(r.description)}</p><small>${state.documents.filter((d) => d.user_id === r.user_id).length} documento(s) · ${esc(r.status)}</small></div><div class="request-actions"><button class="primary" type="button" data-approve="${r.id}">Aprovar e vincular</button><button class="secondary" type="button" data-request-docs="${r.user_id}">Ver documentos</button></div></article>`).join("")}</div>` : ""}${incomplete.length ? `<div class="intake-leads-head"><strong>Aguardando formulário do cliente</strong></div>${incomplete.map(intakeLeadRow).join("")}` : ""}${!items.length && !incomplete.length ? empty("Nenhum cadastro aguardando análise.") : ""}</section>`;
 }
 
 function assignmentControls(contact) {
