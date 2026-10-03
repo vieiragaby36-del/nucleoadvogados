@@ -32,3 +32,7 @@ footer .brand{width:210px}
 .whatsapp-float:hover{transform:translateY(-3px) scale(1.04)}
 @media(max-width:820px){.hero{min-height:650px;padding-top:145px}.hero-foot{bottom:24px}}
 @media(max-width:420px){.whatsapp-float{right:16px;bottom:84px;width:54px;height:54px}.whatsapp-float span{width:29px;height:29px;font-size:19px}}
+
+
+/* Logo branco para as superfícies escuras do site. */
+.logo-white{filter:grayscale(1) brightness(0) invert(1)}
