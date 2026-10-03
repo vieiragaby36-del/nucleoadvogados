@@ -11,6 +11,7 @@ const date = (value) => value ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit
 const state = { session: null, profile: null, contacts: [], cases: [], tasks: [], team: [], view: "dashboard", search: "", editing: null, entity: null };
 let recoveryActive = /(?:^|[&#?])type=recovery(?:&|$)/.test(`${location.search}${location.hash}`);
 const staff = () => ["owner", "staff"].includes(state.profile?.role);
+const authRedirectUrl = () => new URL("/crm/", location.origin).toString();
 
 function showMessage(target, message = "", type = "") {
   const node = $(target);
@@ -68,12 +69,15 @@ async function submitAuth(event) {
   button.disabled = true;
   try {
     let result;
-    if (mode === "signup") result = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${location.origin}/crm/` } });
-    else if (mode === "reset") result = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/crm/` });
+    if (mode === "signup") result = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: authRedirectUrl() } });
+    else if (mode === "reset") result = await supabase.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl() });
     else result = await supabase.auth.signInWithPassword({ email, password });
     if (result.error) throw result.error;
-    if (mode === "signup") showMessage("#auth-message", "Cadastro realizado. Confira seu e-mail para confirmar o acesso.", "success");
-    if (mode === "reset") showMessage("#auth-message", "Link enviado. Confira também a caixa de spam.", "success");
+    if (mode === "signup") {
+      if (result.data?.session) await handleSession(result.data.session);
+      else showMessage("#auth-message", "Cadastro recebido. Abra o e-mail de confirmação e use o mesmo navegador para concluir o acesso. Confira também o spam.", "success");
+    }
+    if (mode === "reset") showMessage("#auth-message", "Se existir uma conta para este e-mail, enviaremos o link de recuperação. Confira spam e aguarde alguns minutos antes de solicitar outro.", "success");
   } catch (error) {
     showMessage("#auth-message", authError(error.message), "error");
   } finally { button.disabled = false; }
@@ -99,9 +103,20 @@ async function submitRecovery(event) {
 
 function authError(message = "") {
   if (/invalid login/i.test(message)) return "E-mail ou senha inválidos.";
-  if (/already registered/i.test(message)) return "Este e-mail já possui cadastro.";
+  if (/already registered|user already exists/i.test(message)) return "Este e-mail já possui cadastro. Use ‘Esqueci a senha’ ou confirme o cadastro recebido por e-mail.";
+  if (/redirect|url.*not allowed|not authorized/i.test(message)) return "O endereço de retorno do portal ainda não foi liberado no Supabase. Configure https://nucleo-advogados.netlify.app/crm/ em Auth → URL Configuration.";
+  if (/rate limit|too many|email.*limit|after.*seconds/i.test(message)) return "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.";
+  if (/email not confirmed/i.test(message)) return "Confirme seu e-mail antes de entrar. Se não recebeu a mensagem, solicite um novo cadastro ou recuperação.";
+  if (/invalid.*email|valid.*email/i.test(message)) return "Informe um e-mail válido.";
+  if (/expired|invalid.*link|otp/i.test(message)) return "O link expirou ou é inválido. Solicite um novo link de recuperação.";
   if (/password/i.test(message)) return "A senha precisa ter pelo menos 8 caracteres.";
   return "Não foi possível concluir o acesso. Tente novamente.";
+}
+
+function showUrlError() {
+  const params = new URLSearchParams(`${location.search}&${location.hash.replace(/^#/, "")}`);
+  const error = params.get("error_description") || params.get("error");
+  if (error) showMessage("#auth-message", authError(decodeURIComponent(error.replace(/\+/g, " "))), "error");
 }
 
 async function handleSession(session) {
@@ -282,5 +297,5 @@ else {
     setTimeout(() => handleSession(session), 0);
   });
   const { data } = await supabase.auth.getSession(); await handleSession(data.session);
-  if (!data.session && new URLSearchParams(location.search).has("error")) showMessage("#auth-message", "O link de acesso expirou ou é inválido. Solicite um novo link.", "error");
+  if (!data.session) showUrlError();
 }
