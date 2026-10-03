@@ -235,7 +235,8 @@ function recordList(items, message, content, action = "") {
 
 function renderContacts(kind) {
   const items = filtered(state.contacts.filter((c) => c.kind === kind), [(c) => c.name, (c) => c.email, (c) => c.phone, (c) => c.stage, (c) => c.source]);
-  $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><h2>${kind === "lead" ? "Oportunidades" : "Pessoas atendidas"}</h2><span>${items.length} registros</span></div>${recordList(items, "Nenhum registro encontrado.", (c) => `<div><strong>${esc(c.name)}</strong><small>${esc(c.email || c.phone || "Sem contato")}</small></div><span>${esc(c.source || "—")}</span><span class="badge">${esc(c.stage)}</span>`, "contact")}${kind === "client" ? items.map((c) => `<div class="client-distribution"><strong>${esc(c.name)}</strong>${assignmentControls(c)}</div>`).join("") : ""}</section>`;
+  const rows = kind === "client" ? items.length ? `<div class="client-list">${items.map((c) => `<article class="client-item"><div class="client-item-head"><div><strong>${esc(c.name)}</strong><small>${esc(c.email || c.phone || "Sem contato")} · ${esc(c.stage)}</small></div><button class="row-action" type="button" data-edit="contact" data-id="${c.id}" aria-label="Editar cliente ${esc(c.name)}">Editar</button></div>${assignmentControls(c)}</article>`).join("")}</div>` : empty("Nenhum cliente encontrado.") : recordList(items, "Nenhum registro encontrado.", (c) => `<div><strong>${esc(c.name)}</strong><small>${esc(c.email || c.phone || "Sem contato")}</small></div><span>${esc(c.source || "—")}</span><span class="badge">${esc(c.stage)}</span>`, "contact");
+  $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><h2>${kind === "lead" ? "Oportunidades" : "Pessoas atendidas"}</h2><span>${items.length} registros</span></div>${rows}</section>`;
 }
 
 function renderCases() {
@@ -262,7 +263,7 @@ function renderIntake() {
       <label>Assunto do atendimento<input name="subject" required minlength="5" maxlength="180" value="${esc(request?.subject)}"></label>
       <label>Conte brevemente sua necessidade<textarea name="description" required minlength="10" maxlength="3000" rows="5">${esc(request?.description)}</textarea></label>
       <label class="check"><input type="checkbox" required> Confirmo que os dados são verdadeiros e li a <a href="/politica-de-privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>.</label>
-      <button class="primary" type="submit">${request ? "Atualizar meus dados" : "Enviar cadastro"}</button>
+      <button class="primary" type="submit">${request ? "Atualizar meus dados" : "Enviar cadastro"}</button><p id="intake-message" class="message hidden" role="status"></p>
     </form></div></section>${request ? documentUploadForm() + `<section class="panel"><div class="panel-head"><h2>Documentos enviados</h2></div>${documentRows(state.documents)}</section>` : '<p class="empty">Depois de enviar o cadastro, você poderá anexar documentos em PDF, JPG ou PNG.</p>'}`;
 }
 
@@ -270,7 +271,7 @@ function documentUploadForm() {
   return `<section class="panel upload-panel"><div class="panel-head"><h2>Enviar documentos</h2></div><div class="intake-body">
     <p>Envie somente arquivos necessários ao atendimento. Formatos: PDF, JPG ou PNG, até 10 MB por arquivo.</p>
     <form id="document-form" class="upload-form"><label>Escolher arquivo<input name="file" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required></label>
-    <button type="submit" class="primary">Enviar documento</button></form></div></section>`;
+    <button type="submit" class="primary">Enviar documento</button><p id="document-message" class="message hidden" role="status"></p></form></div></section>`;
 }
 
 function documentRows(items) {
@@ -348,7 +349,7 @@ async function saveIntake(form) {
     const { error } = await query; if (error) throw error;
     await loadPortal();
     showMessage("#portal-message", "Cadastro enviado. Agora você pode anexar seus documentos.", "success");
-  } catch { showMessage("#portal-message", "Não foi possível salvar o cadastro. Confira os campos e tente novamente.", "error"); }
+  } catch { showMessage("#intake-message", "Não foi possível salvar o cadastro. Confira os campos e tente novamente.", "error"); }
   finally { button.disabled = false; }
 }
 
@@ -356,7 +357,7 @@ async function uploadDocument(form) {
   const file = form.elements.file.files[0];
   if (!file) return;
   const allowed = ["application/pdf","image/jpeg","image/png"];
-  if (!allowed.includes(file.type) || file.size > 10485760 || !file.size) return showMessage("#portal-message", "Use PDF, JPG ou PNG com até 10 MB.", "error");
+  if (!allowed.includes(file.type) || file.size > 10485760 || !file.size) return showMessage("#document-message", "Use PDF, JPG ou PNG com até 10 MB.", "error");
   const button = form.querySelector('button[type="submit"]'); button.disabled = true;
   const extension = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png" }[file.type];
   const path = `${state.profile.id}/${crypto.randomUUID()}.${extension}`;
@@ -366,7 +367,7 @@ async function uploadDocument(form) {
     const saved = await supabase.from("client_documents").insert({user_id:state.profile.id,contact_id:state.profile.contact_id || null,path,file_name:file.name,content_type:file.type,size_bytes:file.size});
     if (saved.error) throw saved.error;
     await loadPortal(); showMessage("#portal-message", "Documento enviado com segurança.", "success");
-  } catch { showMessage("#portal-message", "Não foi possível enviar o documento. Tente novamente.", "error"); }
+  } catch { showMessage("#document-message", "Não foi possível enviar o documento. Tente novamente.", "error"); }
   finally { button.disabled = false; }
 }
 
