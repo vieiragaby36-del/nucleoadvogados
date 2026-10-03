@@ -10,21 +10,31 @@
   <meta property="og:site_name" content="Núcleo Advogados" />
   <meta property="og:title" content="Núcleo Advogados | Consultoria jurídica empresarial" />
   <meta property="og:description" content="Consultoria jurídica empresarial e advocacia estratégica para pessoas e empresas." />
-  <meta property="og:url" content="https://nucleoadvogados.onrender.com/" />
-  <meta property="og:image" content="https://nucleoadvogados.onrender.com/nucleo-logo.png" />
+  <meta property="og:url" content="https://nucleo-advogados.netlify.app/" />
+  <meta property="og:image" content="https://nucleo-advogados.netlify.app/nucleo-logo.png" />
   <meta name="twitter:card" content="summary_large_image" />
-  <link rel="canonical" href="https://nucleoadvogados.onrender.com/" />
+  <link rel="canonical" href="https://nucleo-advogados.netlify.app/" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/nucleo-icon-192.png" />
   <title>Núcleo Advogados | Consultoria jurídica empresarial</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"LegalService","name":"Núcleo Advogados","url":"https://nucleoadvogados.onrender.com/","logo":"https://nucleoadvogados.onrender.com/nucleo-logo.png","description":"Consultoria jurídica empresarial e advocacia estratégica para pessoas e empresas.","email":"contato@nucleoadvogados.com.br","telephone":"+55 11 2366-7488","founder":{"@type":"Person","name":"Mauro Cesar Ramos de Almeida","jobTitle":"Advogado","identifier":"OAB/SP nº 133527"},"areaServed":[{"@type":"City","name":"São Paulo"},{"@type":"City","name":"Brasília"}],"knowsAbout":["Direito Empresarial","Direito Digital","LGPD","Contratos","Contencioso Estratégico","Direito Tributário"]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"LegalService","name":"Núcleo Advogados","url":"https://nucleo-advogados.netlify.app/","logo":"https://nucleo-advogados.netlify.app/nucleo-logo.png","description":"Consultoria jurídica empresarial e advocacia estratégica para pessoas e empresas.","email":"contato@nucleoadvogados.com.br","telephone":"+55 11 2366-7488","founder":{"@type":"Person","name":"Mauro Cesar Ramos de Almeida","jobTitle":"Advogado","identifier":"OAB/SP nº 133527"},"areaServed":[{"@type":"City","name":"São Paulo"},{"@type":"City","name":"Brasília"}],"knowsAbout":["Direito Empresarial","Direito Digital","LGPD","Contratos","Contencioso Estratégico","Direito Tributário"]}</script>
   <link rel="icon" type="image/png" href="favicon.png" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="theme-controls.css" />
   <link rel="stylesheet" href="light.css" id="light-theme" disabled />
+  <script>
+    // Alguns templates de e-mail usam o Site URL em vez do RedirectTo.
+    // Se o link de recuperação cair na home, encaminhamos o token ao CRM sem alterá-lo.
+    try {
+      const recoveryParams = `${location.search}&${location.hash.replace(/^#/, "")}`;
+      if (/(?:^|[&#?])type=recovery(?:&|$)/.test(recoveryParams)) {
+        location.replace(`/crm/${location.search}${location.hash}`);
+      }
+    } catch (_) {}
+  </script>
   <script>
     try { if (localStorage.getItem('nucleo-theme') === 'light') document.getElementById('light-theme').disabled = false; } catch (_) {}
   </script>
@@ -76,3 +86,4 @@
   <script>if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));</script>
 </body>
 </html>
+
