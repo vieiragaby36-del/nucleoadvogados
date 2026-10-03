@@ -104,7 +104,8 @@ async function submitRecovery(event) {
 function authError(message = "") {
   if (/invalid login/i.test(message)) return "E-mail ou senha inválidos.";
   if (/already registered|user already exists/i.test(message)) return "Este e-mail já possui cadastro. Use ‘Esqueci a senha’ ou confirme o cadastro recebido por e-mail.";
-  if (/redirect|url.*not allowed|not authorized/i.test(message)) return "O endereço de retorno do portal ainda não foi liberado no Supabase. Configure https://nucleo-advogados.netlify.app/crm/ em Auth → URL Configuration.";
+  if (/email.*not authorized|email_address_not_authorized/i.test(message)) return "O envio de e-mails ainda não está liberado para este endereço. O escritório precisa configurar um servidor SMTP próprio no Supabase.";
+  if (/redirect|url.*not allowed|redirect.*not authorized/i.test(message)) return "O endereço de retorno do portal ainda não foi liberado no Supabase. Configure https://nucleo-advogados.netlify.app/crm/ em Auth → URL Configuration.";
   if (/rate limit|too many|email.*limit|after.*seconds/i.test(message)) return "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.";
   if (/email not confirmed/i.test(message)) return "Confirme seu e-mail antes de entrar. Se não recebeu a mensagem, solicite um novo cadastro ou recuperação.";
   if (/invalid.*email|valid.*email/i.test(message)) return "Informe um e-mail válido.";
@@ -116,7 +117,7 @@ function authError(message = "") {
 function showUrlError() {
   const params = new URLSearchParams(`${location.search}&${location.hash.replace(/^#/, "")}`);
   const error = params.get("error_description") || params.get("error");
-  if (error) showMessage("#auth-message", authError(decodeURIComponent(error.replace(/\+/g, " "))), "error");
+  if (error) showMessage("#auth-message", authError(error), "error");
 }
 
 async function handleSession(session) {
@@ -185,7 +186,7 @@ function render() {
 
 function renderPending() {
   $("#page-head").innerHTML = "";
-  $("#workspace").innerHTML = `<div class="pending-card"><p class="eyebrow">CADASTRO RECEBIDO</p><h2>Acesso aguardando vínculo</h2><p>Você entrou como <strong>${esc(state.profile.email)}</strong>. A equipe precisa vincular este e-mail ao seu cadastro antes de liberar as informações.</p><a href="mailto:contato@nucleoadvogados.com.br?subject=Vincular%20acesso%20ao%20portal">Solicitar vínculo à equipe</a></div>`;
+  $("#workspace").innerHTML = `<div class="pending-card"><p class="eyebrow">CADASTRO CONFIRMADO</p><h2>Acesso aguardando vínculo</h2><p>Sua conta <strong>${esc(state.profile.email)}</strong> já está ativa. Para proteger os dados dos clientes, a equipe precisa vincular este e-mail ao seu cadastro antes de mostrar processos e compromissos.</p><a href="mailto:contato@nucleoadvogados.com.br?subject=Vincular%20acesso%20ao%20portal">Solicitar vínculo à equipe</a></div>`;
 }
 
 function renderHead() {
