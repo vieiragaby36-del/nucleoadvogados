@@ -145,16 +145,27 @@ async function submitRecovery(event) {
 }
 
 function authError(message = "") {
-  if (/invalid login/i.test(message)) return "E-mail ou senha inválidos.";
+  message = String(message || "");
+  if (/invalid login|invalid[_ ]credentials|invalid.*credential/i.test(message)) return "E-mail ou senha inválidos. Confira os dados ou use ‘Esqueci a senha’.";
   if (/already registered|user already exists/i.test(message)) return "Este e-mail já possui cadastro. Use ‘Esqueci a senha’ ou confirme o cadastro recebido por e-mail.";
   if (/email.*not authorized|email_address_not_authorized/i.test(message)) return "O envio de e-mails ainda não está liberado para este endereço. O escritório precisa configurar um servidor SMTP próprio no Supabase.";
   if (/redirect|url.*not allowed|redirect.*not authorized/i.test(message)) return "O endereço de retorno do portal ainda não foi liberado no Supabase. Configure https://nucleoadvogados.onrender.com/crm/ em Auth → URL Configuration.";
   if (/rate limit|too many|email.*limit|after.*seconds/i.test(message)) return "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.";
   if (/email not confirmed/i.test(message)) return "Confirme seu e-mail antes de entrar. Se não recebeu a mensagem, solicite um novo cadastro ou recuperação.";
+  if (/database error saving new user|trigger|relation .* does not exist/i.test(message)) return "O cadastro não pôde ser concluído porque a estrutura do portal no Supabase precisa ser atualizada. Avise o administrador do site.";
+  if (/failed to fetch|network|fetch/i.test(message)) return "Não foi possível conectar ao serviço de acesso. Verifique sua internet e tente novamente.";
   if (/invalid.*email|valid.*email/i.test(message)) return "Informe um e-mail válido.";
   if (/expired|invalid.*link|otp/i.test(message)) return "O link expirou ou é inválido. Solicite um novo link de recuperação.";
   if (/password/i.test(message)) return "A senha precisa ter pelo menos 8 caracteres.";
   return "Não foi possível concluir o acesso. Tente novamente.";
+}
+
+function portalError(error) {
+  const message = String(error?.message || error || "");
+  if (/permission denied|row-level security|not authorized/i.test(message)) return "Seu acesso foi autenticado, mas o perfil ainda não tem permissão no portal. Confirme o e-mail e tente novamente.";
+  if (/failed to fetch|network|fetch/i.test(message)) return "Não foi possível conectar ao portal. Verifique sua internet e tente novamente.";
+  if (/profiles|client_requests|client_documents|does not exist/i.test(message)) return "O banco do portal ainda não terminou de sincronizar seu cadastro. Aguarde alguns segundos e entre novamente.";
+  return authError(message);
 }
 
 function showUrlError() {
@@ -221,10 +232,11 @@ async function loadPortal() {
     $("#portal").classList.remove("hidden");
     $("#account-email").textContent = profile.email;
     renderNav(); render();
-  } catch {
+  } catch (error) {
+    console.error("[Núcleo Advogados] Falha ao carregar o portal", error);
     $("#boot").classList.add("hidden");
     showAuth();
-    showMessage("#auth-message", "Não foi possível carregar o portal. Tente entrar novamente.", "error");
+    showMessage("#auth-message", portalError(error), "error");
   }
 }
 
