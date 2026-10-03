@@ -116,7 +116,7 @@ declare
   assigned_role public.crm_role := 'pending';
 begin
   select id into matched_contact from public.contacts where email = normalized_email and kind = 'client' limit 1;
-  if normalized_email = 'ambientedeproducaodeapp@gmail.com' then assigned_role := 'owner'; matched_contact := null;
+  if normalized_email = 'adrianoguimaraes.sp@gmail.com' then assigned_role := 'owner'; matched_contact := null;
   elsif exists(select 1 from public.team_invites where email = normalized_email) then assigned_role := 'staff'; matched_contact := null;
   elsif matched_contact is not null then assigned_role := 'client';
   end if;
@@ -132,10 +132,10 @@ create trigger crm_auth_user_sync after insert or update of email on auth.users 
 
 insert into public.profiles(id,email,full_name,role,contact_id)
 select u.id, lower(u.email), nullif(u.raw_user_meta_data->>'full_name',''),
-  case when lower(u.email)='ambientedeproducaodeapp@gmail.com' then 'owner'::public.crm_role
+  case when lower(u.email)='adrianoguimaraes.sp@gmail.com' then 'owner'::public.crm_role
        when exists(select 1 from public.team_invites i where i.email=lower(u.email)) then 'staff'::public.crm_role
        when c.id is not null then 'client'::public.crm_role else 'pending'::public.crm_role end,
-  case when lower(u.email)<>'ambientedeproducaodeapp@gmail.com' and not exists(select 1 from public.team_invites i where i.email=lower(u.email)) then c.id end
+  case when lower(u.email)<>'adrianoguimaraes.sp@gmail.com' and not exists(select 1 from public.team_invites i where i.email=lower(u.email)) then c.id end
 from auth.users u left join public.contacts c on c.email=lower(u.email) and c.kind='client'
 on conflict(id) do nothing;
 
