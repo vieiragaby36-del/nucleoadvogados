@@ -8,7 +8,7 @@ if (configured) {
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
 const date = (value) => value ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${String(value).slice(0, 10)}T12:00:00Z`)) : "Sem data";
-const state = { session: null, profile: null, contacts: [], cases: [], tasks: [], team: [], view: "dashboard", search: "", editing: null, entity: null };
+const state = { session: null, profile: null, contacts: [], cases: [], tasks: [], team: [], lawyers: [], requestProfiles: [], requests: [], documents: [], assignments: [], view: "dashboard", search: "", editing: null, entity: null };
 let recoveryActive = /(?:^|[&#?])type=recovery(?:&|$)/.test(`${location.search}${location.hash}`);
 const staff = () => ["owner", "staff"].includes(state.profile?.role);
 const authRedirectUrl = () => new URL("/crm/", location.origin).toString();
@@ -43,7 +43,7 @@ function showRecovery() {
 function setAuthMode(mode) {
   const content = {
     login: ["Entrar no portal", "Use o e-mail cadastrado junto ao escritório.", "Entrar"],
-    signup: ["Criar acesso", "Cadastre-se com o mesmo e-mail informado ao escritório.", "Criar minha conta"],
+    signup: ["Criar acesso", "Cadastre seu e-mail e confirme a mensagem recebida. Depois, preencha o formulário de cliente.", "Criar minha conta"],
     reset: ["Recuperar senha", "Enviaremos um link seguro para o seu e-mail.", "Enviar link"]
   }[mode];
   $("#auth-form").dataset.mode = mode;
@@ -142,17 +142,29 @@ async function loadPortal() {
     if (error) throw error;
     state.profile = profile;
     if (profile.role === "pending") {
-      state.contacts = []; state.cases = []; state.tasks = []; state.team = [];
+      state.contacts = []; state.cases = []; state.tasks = []; state.team = []; state.lawyers = []; state.assignments = [];
+      const [requests, documents] = await Promise.all([
+        supabase.from("client_requests").select("*").eq("user_id", userId),
+        supabase.from("client_documents").select("*").eq("user_id", userId).order("created_at", { ascending: false })
+      ]);
+      if (requests.error || documents.error) throw requests.error || documents.error;
+      state.requests = requests.data || []; state.documents = documents.data || [];
     } else {
-      const [contacts, cases, tasks, team] = await Promise.all([
+      const [contacts, cases, tasks, team, lawyers, requestProfiles, requests, documents, assignments] = await Promise.all([
         staff() ? supabase.from("contacts").select("*").order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
         supabase.from("cases").select("*").order("updated_at", { ascending: false }),
         supabase.from("tasks").select("*").order("due_at", { ascending: true }),
-        profile.role === "owner" ? supabase.from("team_invites").select("email,created_at").order("created_at", { ascending: false }) : Promise.resolve({ data: [] })
+        profile.role === "owner" ? supabase.from("team_invites").select("email,created_at").order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
+        profile.role === "owner" ? supabase.from("profiles").select("id,email,full_name,role").eq("role","staff") : Promise.resolve({ data: [] }),
+        profile.role === "owner" ? supabase.from("profiles").select("id,email") : Promise.resolve({ data: [] }),
+        profile.role === "owner" ? supabase.from("client_requests").select("*").order("created_at", { ascending: false }) : supabase.from("client_requests").select("*").eq("user_id",userId),
+        supabase.from("client_documents").select("*").order("created_at", { ascending: false }),
+        staff() ? supabase.from("client_assignments").select("*") : Promise.resolve({ data: [] })
       ]);
-      const failed = [contacts, cases, tasks, team].find((result) => result.error);
+      const failed = [contacts, cases, tasks, team, lawyers, requestProfiles, requests, documents, assignments].find((result) => result.error);
       if (failed) throw failed.error;
       [state.contacts, state.cases, state.tasks, state.team] = [contacts, cases, tasks, team].map((result) => result.data || []);
+      [state.lawyers, state.requestProfiles, state.requests, state.documents, state.assignments] = [lawyers, requestProfiles, requests, documents, assignments].map((result) => result.data || []);
     }
     $("#boot").classList.add("hidden");
     $("#portal").classList.remove("hidden");
@@ -166,11 +178,12 @@ async function loadPortal() {
 }
 
 function renderNav() {
-  const items = state.profile.role === "pending" ? [] : [
+  const items = state.profile.role === "pending" ? [["intake", "✎", "Meu cadastro"], ["documents", "▤", "Documentos"]] : [
     ["dashboard", "▦", "Visão geral"],
-    ...(staff() ? [["leads", "◇", "Leads"], ["clients", "◉", "Clientes"]] : []),
+    ...(staff() ? [["leads", "◇", "Leads"], ["clients", "◉", "Clientes"]] : [["intake", "✎", "Meu cadastro"]]),
     ["cases", "▣", "Processos"], ["tasks", "✓", "Tarefas"], ["agenda", "◷", "Agenda"],
-    ...(state.profile.role === "owner" ? [["team", "♙", "Equipe"]] : [])
+    ["documents", "▤", "Documentos"],
+    ...(state.profile.role === "owner" ? [["requests", "◷", "Cadastros recebidos"], ["team", "♙", "Equipe"]] : [])
   ];
   $("#nav").innerHTML = items.map(([id, icon, label]) => `<button data-view="${id}" class="${state.view === id ? "active" : ""}"><span>${icon}</span>${label}</button>`).join("");
   $("#side-caption").textContent = staff() ? "GESTÃO DO ESCRITÓRIO" : "ÁREA DO CLIENTE";
@@ -178,22 +191,27 @@ function renderNav() {
 }
 
 function render() {
-  if (state.profile.role === "pending") return renderPending();
+  if (state.profile.role === "pending") {
+    if (state.view === "documents") { renderHead(); renderDocuments(); }
+    else renderPending();
+    return;
+  }
   renderHead();
-  const renderers = { dashboard: renderDashboard, leads: () => renderContacts("lead"), clients: () => renderContacts("client"), cases: renderCases, tasks: () => renderTasks(false), agenda: () => renderTasks(true), team: renderTeam };
+  const renderers = { dashboard: renderDashboard, leads: () => renderContacts("lead"), clients: () => renderContacts("client"), intake: renderIntake, documents: renderDocuments, requests: renderRequests, cases: renderCases, tasks: () => renderTasks(false), agenda: () => renderTasks(true), team: renderTeam };
   (renderers[state.view] || renderDashboard)();
 }
 
 function renderPending() {
-  $("#page-head").innerHTML = "";
-  $("#workspace").innerHTML = `<div class="pending-card"><p class="eyebrow">CADASTRO CONFIRMADO</p><h2>Acesso aguardando vínculo</h2><p>Sua conta <strong>${esc(state.profile.email)}</strong> já está ativa. Para proteger os dados dos clientes, a equipe precisa vincular este e-mail ao seu cadastro antes de mostrar processos e compromissos.</p><a href="mailto:contato@nucleoadvogados.com.br?subject=Vincular%20acesso%20ao%20portal">Solicitar vínculo à equipe</a></div>`;
+  $("#page-head").innerHTML = '<div><p class="eyebrow">ÁREA DO CLIENTE</p><h1>Complete seu cadastro</h1><p>Envie seus dados e documentos para análise da equipe.</p></div>';
+  renderNav();
+  renderIntake();
 }
 
 function renderHead() {
-  const titles = { dashboard: staff() ? "Visão geral" : "Seu atendimento", leads: "Leads", clients: "Clientes", cases: "Processos", tasks: "Tarefas", agenda: "Agenda", team: "Equipe" };
-  const descriptions = { dashboard: staff() ? "Acompanhe os registros do escritório em um só lugar." : "Acompanhe as informações compartilhadas pela equipe.", leads: "Organize oportunidades e próximos contatos.", clients: "Consulte as pessoas atendidas pelo escritório.", cases: "Acompanhe casos e processos jurídicos.", tasks: "Controle atividades e compromissos.", agenda: "Veja os compromissos em ordem de data.", team: "Gerencie quem acessa o painel do escritório." };
+  const titles = { dashboard: staff() ? "Visão geral" : "Seu atendimento", leads: "Leads", clients: "Clientes", intake: "Meu cadastro", documents: "Documentos", requests: "Cadastros recebidos", cases: "Processos", tasks: "Tarefas", agenda: "Agenda", team: "Equipe" };
+  const descriptions = { dashboard: staff() ? "Acompanhe os registros do escritório em um só lugar." : "Acompanhe as informações compartilhadas pela equipe.", leads: "Organize oportunidades e próximos contatos.", clients: "Consulte as pessoas atendidas pelo escritório.", intake: "Seus dados enviados ao escritório.", documents: "Arquivos protegidos do atendimento.", requests: "Analise os pedidos antes de vincular clientes.", cases: "Acompanhe casos e processos jurídicos.", tasks: "Controle atividades e compromissos.", agenda: "Veja os compromissos em ordem de data.", team: "Gerencie quem acessa o painel do escritório." };
   const entities = { leads: ["contact", "Novo lead"], clients: ["contact", "Novo cliente"], cases: ["case", "Novo processo"], tasks: ["task", "Nova tarefa"], team: ["staff", "Adicionar integrante"] };
-  const action = staff() && entities[state.view] ? `<button class="primary" data-new="${entities[state.view][0]}">＋ ${entities[state.view][1]}</button>` : "";
+  const action = staff() && (state.profile.role === "owner" || state.view !== "clients") && entities[state.view] ? `<button class="primary" data-new="${entities[state.view][0]}">＋ ${entities[state.view][1]}</button>` : "";
   $("#page-head").innerHTML = `<div><p class="eyebrow">${staff() ? "NÚCLEO ADVOGADOS · CRM" : "ÁREA DO CLIENTE"}</p><h1>${titles[state.view]}</h1><p>${descriptions[state.view]}</p></div>${action}`;
 }
 
@@ -217,7 +235,7 @@ function recordList(items, message, content, action = "") {
 
 function renderContacts(kind) {
   const items = filtered(state.contacts.filter((c) => c.kind === kind), [(c) => c.name, (c) => c.email, (c) => c.phone, (c) => c.stage, (c) => c.source]);
-  $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><h2>${kind === "lead" ? "Oportunidades" : "Pessoas atendidas"}</h2><span>${items.length} registros</span></div>${recordList(items, "Nenhum registro encontrado.", (c) => `<div><strong>${esc(c.name)}</strong><small>${esc(c.email || c.phone || "Sem contato")}</small></div><span>${esc(c.source || "—")}</span><span class="badge">${esc(c.stage)}</span>`, "contact")}</section>`;
+  $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><h2>${kind === "lead" ? "Oportunidades" : "Pessoas atendidas"}</h2><span>${items.length} registros</span></div>${recordList(items, "Nenhum registro encontrado.", (c) => `<div><strong>${esc(c.name)}</strong><small>${esc(c.email || c.phone || "Sem contato")}</small></div><span>${esc(c.source || "—")}</span><span class="badge">${esc(c.stage)}</span>`, "contact")}${kind === "client" ? items.map((c) => `<div class="client-distribution"><strong>${esc(c.name)}</strong>${assignmentControls(c)}</div>`).join("") : ""}</section>`;
 }
 
 function renderCases() {
@@ -232,6 +250,50 @@ function renderTasks(agenda) {
 
 function renderTeam() {
   $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><h2>Acesso da equipe</h2><span>${state.team.length} integrantes</span></div>${recordList(state.team, "Nenhum integrante cadastrado.", (item) => `<div><strong>${esc(item.email)}</strong><small>Permissão de equipe</small></div><span></span><span class="badge">Ativo</span>`)}</section>`;
+}
+
+function renderIntake() {
+  const request = state.requests.find((item) => item.user_id === state.profile.id);
+  $("#workspace").innerHTML = `<section class="panel intake-panel"><div class="panel-head"><h2>Solicitação de atendimento</h2><span class="badge">${esc(request?.status || "Não enviada")}</span></div>
+    <div class="intake-body"><p>Seus dados ficam disponíveis para análise do escritório. O acesso aos processos será liberado após o vínculo do seu cadastro.</p>
+    <form id="intake-form" class="dialog-fields">
+      <label>Nome completo<input name="full_name" required minlength="2" maxlength="160" autocomplete="name" value="${esc(request?.full_name || state.profile.full_name)}"></label>
+      <label>Telefone com DDD<input name="phone" type="tel" required minlength="8" maxlength="50" autocomplete="tel" value="${esc(request?.phone)}"></label>
+      <label>Assunto do atendimento<input name="subject" required minlength="5" maxlength="180" value="${esc(request?.subject)}"></label>
+      <label>Conte brevemente sua necessidade<textarea name="description" required minlength="10" maxlength="3000" rows="5">${esc(request?.description)}</textarea></label>
+      <label class="check"><input type="checkbox" required> Confirmo que os dados são verdadeiros e li a <a href="/politica-de-privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>.</label>
+      <button class="primary" type="submit">${request ? "Atualizar meus dados" : "Enviar cadastro"}</button>
+    </form></div></section>${request ? documentUploadForm() + `<section class="panel"><div class="panel-head"><h2>Documentos enviados</h2></div>${documentRows(state.documents)}</section>` : '<p class="empty">Depois de enviar o cadastro, você poderá anexar documentos em PDF, JPG ou PNG.</p>'}`;
+}
+
+function documentUploadForm() {
+  return `<section class="panel upload-panel"><div class="panel-head"><h2>Enviar documentos</h2></div><div class="intake-body">
+    <p>Envie somente arquivos necessários ao atendimento. Formatos: PDF, JPG ou PNG, até 10 MB por arquivo.</p>
+    <form id="document-form" class="upload-form"><label>Escolher arquivo<input name="file" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required></label>
+    <button type="submit" class="primary">Enviar documento</button></form></div></section>`;
+}
+
+function documentRows(items) {
+  return items.length ? `<div class="documents-list">${items.map((d) => `<div class="document-row"><div><strong>${esc(d.file_name)}</strong><small>${date(d.created_at)} · ${Math.ceil(d.size_bytes / 1024)} KB${staff() ? ` · ${esc(contactName(d.contact_id))}` : ""}</small></div><button type="button" class="row-action" data-download="${d.id}">Baixar</button></div>`).join("")}</div>` : empty("Nenhum documento enviado ainda.");
+}
+
+function renderDocuments() {
+  const documents = filtered(state.documents, [(d) => d.file_name, (d) => contactName(d.contact_id)]);
+  $("#workspace").innerHTML = `${!staff() && state.requests.length ? documentUploadForm() : ""}
+    <section class="panel"><div class="panel-head"><h2>${staff() ? "Documentos dos clientes" : "Meus documentos"}</h2><span>${documents.length} arquivos</span></div>${documentRows(documents)}</section>`;
+}
+
+function renderRequests() {
+  const items = state.requests.filter((r) => r.status !== "aprovado");
+  $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><h2>Novos cadastros</h2><span>${items.length} aguardando análise</span></div>
+    ${items.length ? `<div class="request-list">${items.map((r) => `<article class="request-card"><div><strong>${esc(r.full_name)}</strong><small>${esc(state.requestProfiles.find((p) => p.id === r.user_id)?.email || "")} · ${esc(r.phone)}</small><p><b>${esc(r.subject)}</b> — ${esc(r.description)}</p><small>${state.documents.filter((d) => d.user_id === r.user_id).length} documento(s) · ${esc(r.status)}</small></div><div class="request-actions"><button class="primary" type="button" data-approve="${r.id}">Aprovar e vincular</button><button class="secondary" type="button" data-request-docs="${r.user_id}">Ver documentos</button></div></article>`).join("")}</div>` : empty("Nenhum pedido aguardando análise.")}</section>`;
+}
+
+function assignmentControls(contact) {
+  if (state.profile.role !== "owner") return "";
+  const assigned = state.assignments.filter((a) => a.contact_id === contact.id);
+  return `<div class="assignment"><label>Advogado responsável<select data-assign="${contact.id}"><option value="">Escolha um integrante</option>${state.lawyers.filter((p) => !assigned.some((a) => a.staff_id === p.id)).map((p) => `<option value="${p.id}">${esc(p.full_name || p.email)}</option>`).join("")}</select></label>
+    <button type="button" class="secondary" data-assign-save="${contact.id}">Distribuir</button><div class="assigned-list">${assigned.map((a) => `<span class="badge">${esc(state.lawyers.find((p) => p.id === a.staff_id)?.full_name || state.lawyers.find((p) => p.id === a.staff_id)?.email || "Advogado")} <button type="button" data-unassign="${contact.id}" data-staff="${a.staff_id}" aria-label="Remover atribuição">×</button></span>`).join("")}</div></div>`;
 }
 
 function openDialog(entity, item = null) {
@@ -275,12 +337,102 @@ async function saveRecord(event) {
   finally { submit.disabled = false; }
 }
 
+async function saveIntake(form) {
+  const button = form.querySelector('button[type="submit"]'); button.disabled = true;
+  try {
+    const values = Object.fromEntries(new FormData(form));
+    const payload = Object.fromEntries(["full_name","phone","subject","description"].map((key) => [key, String(values[key] || "").trim()]));
+    const existing = state.requests.find((r) => r.user_id === state.profile.id);
+    const query = existing ? supabase.from("client_requests").update(payload).eq("id",existing.id) :
+      supabase.from("client_requests").insert({ ...payload, user_id: state.profile.id });
+    const { error } = await query; if (error) throw error;
+    await loadPortal();
+    showMessage("#portal-message", "Cadastro enviado. Agora você pode anexar seus documentos.", "success");
+  } catch { showMessage("#portal-message", "Não foi possível salvar o cadastro. Confira os campos e tente novamente.", "error"); }
+  finally { button.disabled = false; }
+}
+
+async function uploadDocument(form) {
+  const file = form.elements.file.files[0];
+  if (!file) return;
+  const allowed = ["application/pdf","image/jpeg","image/png"];
+  if (!allowed.includes(file.type) || file.size > 10485760 || !file.size) return showMessage("#portal-message", "Use PDF, JPG ou PNG com até 10 MB.", "error");
+  const button = form.querySelector('button[type="submit"]'); button.disabled = true;
+  const extension = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png" }[file.type];
+  const path = `${state.profile.id}/${crypto.randomUUID()}.${extension}`;
+  try {
+    const uploaded = await supabase.storage.from("client-documents").upload(path,file,{contentType:file.type,upsert:false});
+    if (uploaded.error) throw uploaded.error;
+    const saved = await supabase.from("client_documents").insert({user_id:state.profile.id,contact_id:state.profile.contact_id || null,path,file_name:file.name,content_type:file.type,size_bytes:file.size});
+    if (saved.error) throw saved.error;
+    await loadPortal(); showMessage("#portal-message", "Documento enviado com segurança.", "success");
+  } catch { showMessage("#portal-message", "Não foi possível enviar o documento. Tente novamente.", "error"); }
+  finally { button.disabled = false; }
+}
+
+async function approveRequest(id) {
+  const request = state.requests.find((r) => r.id === id);
+  const email = state.requestProfiles.find((p) => p.id === request?.user_id)?.email;
+  if (!request || !email) return showMessage("#portal-message","Cadastro sem e-mail vinculado. Confira a conta do usuário.","error");
+  try {
+    let contactId = request.contact_id;
+    if (!contactId) {
+      const existing = state.contacts.find((c) => c.email === email);
+      if (existing && existing.kind !== "client") throw new Error("O e-mail já pertence a um lead. Converta-o em cliente primeiro.");
+      if (existing) contactId = existing.id;
+      else {
+        const created = await supabase.from("contacts").insert({name:request.full_name,email,phone:request.phone,kind:"client",stage:"convertido",source:"Cadastro pelo portal"}).select("id").single();
+        if (created.error) throw created.error;
+        contactId = created.data.id;
+      }
+    }
+    const linked = await supabase.from("client_requests").update({status:"aprovado",contact_id:contactId}).eq("id",id);
+    if (linked.error) throw linked.error;
+    const documents = await supabase.from("client_documents").update({contact_id:contactId}).eq("user_id",request.user_id).is("contact_id",null);
+    if (documents.error) throw documents.error;
+    await loadPortal(); showMessage("#portal-message","Cliente vinculado. Distribua-o na lista de Clientes.","success");
+  } catch (error) { showMessage("#portal-message",error.message?.includes("lead") ? error.message : "Não foi possível aprovar. Confira se o e-mail já pertence a outro cliente.", "error"); }
+}
+
+async function updateAssignment(contactId, staffId, remove = false) {
+  if (state.profile.role !== "owner" || !staffId) return;
+  const query = remove ? supabase.from("client_assignments").delete().eq("contact_id",contactId).eq("staff_id",staffId)
+    : supabase.from("client_assignments").insert({contact_id:contactId,staff_id:staffId});
+  const { error } = await query;
+  if (error) return showMessage("#portal-message","Não foi possível alterar a distribuição.","error");
+  await loadPortal(); showMessage("#portal-message","Distribuição atualizada.","success");
+}
+
 document.addEventListener("click", async (event) => {
+  const downloadId = event.target.closest("[data-download]")?.dataset.download;
+  if (downloadId) {
+    const document = state.documents.find((d) => d.id === downloadId);
+    if (!document) return;
+    const { data, error } = await supabase.storage.from("client-documents").download(document.path);
+    if (error) return showMessage("#portal-message","Não foi possível baixar o documento.","error");
+    const link = window.document.createElement("a"); const url = URL.createObjectURL(data);
+    link.href = url; link.download = document.file_name; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return;
+  }
+  const approve = event.target.closest("[data-approve]")?.dataset.approve;
+  if (approve) return approveRequest(approve);
+  const docsUser = event.target.closest("[data-request-docs]")?.dataset.requestDocs;
+  if (docsUser) { state.view="documents"; state.search=state.requestProfiles.find((p)=>p.id===docsUser)?.email || ""; state.search=""; renderNav(); $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><h2>Documentos do cadastro</h2></div>${documentRows(state.documents.filter((d)=>d.user_id===docsUser))}</section>`; return; }
+  const assignContact = event.target.closest("[data-assign-save]")?.dataset.assignSave;
+  if (assignContact) return updateAssignment(assignContact,$(`[data-assign="${assignContact}"]`)?.value);
+  const unassign = event.target.closest("[data-unassign]");
+  if (unassign) return updateAssignment(unassign.dataset.unassign,unassign.dataset.staff,true);
   const view = event.target.closest("[data-view]")?.dataset.view;
   if (view) { state.view = view; state.search = ""; $("#search").value = ""; $("#sidebar").classList.remove("open"); renderNav(); render(); return; }
   const add = event.target.closest("[data-new]")?.dataset.new; if (add) return openDialog(add);
   if (event.target.closest("[data-close-dialog]")) return $("#record-dialog").close();
   const edit = event.target.closest("[data-edit]"); if (edit) { const collection = edit.dataset.edit === "contact" ? state.contacts : edit.dataset.edit === "case" ? state.cases : state.tasks; return openDialog(edit.dataset.edit, collection.find((item) => item.id === edit.dataset.id)); }
+});
+
+document.addEventListener("submit", async (event) => {
+  if (event.target.id === "intake-form") { event.preventDefault(); await saveIntake(event.target); }
+  if (event.target.id === "document-form") { event.preventDefault(); await uploadDocument(event.target); }
 });
 
 document.querySelectorAll("[data-auth-mode]").forEach((button) => button.addEventListener("click", () => setAuthMode(button.dataset.authMode)));
