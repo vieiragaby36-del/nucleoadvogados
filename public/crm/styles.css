@@ -11,3 +11,54 @@ label{display:grid;gap:7px;color:#cbd8e4;font-size:13px;font-weight:650}input,se
 @media(max-width:760px){.auth-page{grid-template-columns:1fr}.auth-intro{min-height:330px;padding:30px}.auth-intro h1{font-size:42px}.auth-legal{display:none}.auth-panel{padding:20px}.auth-card{padding:27px}.sidebar{transform:translateX(-100%);transition:transform .2s}.sidebar.open{transform:translateX(0)}.main-area{margin-left:0}.mobile-only{display:block}.topbar{padding:0 14px}.account-email{display:none}.content{padding:26px 15px}.page-head{align-items:flex-start;flex-direction:column}.kpis{gap:9px}.card{padding:15px}.card strong{font-size:29px}.pipeline{grid-template-columns:1fr}.record{grid-template-columns:1fr auto}.record>:nth-child(2){display:none}.record .row-action{grid-column:2;grid-row:1}.form-grid{grid-template-columns:1fr}}
 
 .auth-intro .brand{width:min(300px,70vw)}.sidebar .brand{width:196px;padding:0 0 22px}.brand img{display:block;width:100%;height:auto}.sidebar .brand img{max-height:68px;object-fit:contain}.auth-intro .brand img{filter:drop-shadow(0 12px 28px rgba(0,0,0,.22))}
+
+/* O CRM usa modo claro para facilitar a leitura diária da equipe. */
+html{color-scheme:light}
+:root{--bg:#f4f6fa;--deep:#ffffff;--panel:#ffffff;--panel2:#f7f9fc;--line:#d9e2ec;--gold:#9a6b21;--gold2:#76501a;--text:#1c2b3a;--muted:#617286;--danger:#9b3d3d;--success:#23745d;--shadow:0 18px 45px rgba(21,42,66,.12)}
+body{background:var(--bg);color:var(--text)}
+.center-screen{color:var(--muted)}
+.auth-intro{background:linear-gradient(145deg,#f7f9fc,#eaf0f7);border-right:1px solid var(--line)}
+.auth-intro h1,.page-head h1{color:#24384d}
+.auth-intro>div>p:last-child{color:#52677d}
+.auth-legal{color:#6f8193}
+.auth-panel{background:#f4f6fa}
+.auth-card{background:#fff;border-color:var(--line);box-shadow:var(--shadow)}
+.auth-card h2{color:#24384d}
+label{color:#40556b}
+input,select,textarea{background:#fff;color:var(--text);border-color:#c9d5e1}
+.secondary{background:#edf2f7;color:#30465c}
+.message{border-color:#b8cddd;background:#edf5fb;color:#38566d}
+.message.error{border-color:#e1b7b7;background:#fff1f1;color:#8a3333}
+.message.success{border-color:#acd9c8;background:#eefaf5;color:#21694f}
+.sidebar{background:#fff;border-color:var(--line);box-shadow:8px 0 26px rgba(21,42,66,.04)}
+.side-caption{color:#8292a3}
+.sidebar nav button{color:#53687d}
+.sidebar nav button:hover,.sidebar nav button.active{background:#f0e7d7;color:#76501a}
+.topbar{background:rgba(255,255,255,.96);border-color:var(--line)}
+.search{background:#f7f9fc;border-color:#d4dee8}
+.search input{background:transparent}
+.account-email{color:#617286}
+.icon-button{color:#53687d}
+.icon-button:hover{background:#edf2f7;color:#76501a}
+.card,.panel{background:#fff;border-color:var(--line);box-shadow:0 8px 25px rgba(21,42,66,.05)}
+.card span{color:#52677d}
+.card small,.record small,.panel-head span{color:#718397}
+.panel-head{border-color:var(--line)}
+.panel-head h2{color:#2a4056}
+.record{border-color:#e5ebf1}
+.badge{color:#76501a;background:#f7f0e3;border-color:#dfc89f}
+.row-action{color:#8a611f}
+.row-action:hover{background:#f4eee4}
+.pipeline{background:var(--line)}
+.pipeline-column{background:#fff}
+.pipeline-column h3{color:#8a611f}
+.pipeline-item{background:#f7f9fc;border-color:#d9e2ec;color:var(--text)}
+.pipeline-item small{color:#718397}
+.record-dialog{background:#fff;border-color:var(--line);color:var(--text)}
+.record-dialog::backdrop{background:rgba(24,42,62,.28)}
+.record-dialog form>header,.record-dialog form>footer{border-color:var(--line)}
+.record-dialog form>header h2{color:#24384d}
+.pending-card{background:#fff;border-color:var(--line)}
+.pending-card h2{color:#24384d}
+.pending-card p{color:#617286}
+
