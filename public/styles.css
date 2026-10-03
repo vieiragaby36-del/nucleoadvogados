@@ -20,3 +20,4 @@
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 .contact-help{margin:0;color:var(--muted);font-size:13px;line-height:1.5}.contact-help a{color:var(--gold-light);text-decoration:underline}
 @media(max-width:1050px){body.menu-open{overflow:hidden}}
+.language-control[hidden]{display:none!important}
