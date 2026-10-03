@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { getChatGPTUser } from "@/app/chatgpt-auth";
 
-const OWNER_EMAIL = "vieiragaby36@gmail.com";
+const OWNER_EMAIL = "adrianoguimaraes.sp@gmail.com";
 export type CrmAccess = { role: "owner" | "staff" | "client" | "none"; email: string; contactId?: string };
 
 export async function getCrmAccess(): Promise<CrmAccess | null> {
