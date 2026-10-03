@@ -19,3 +19,16 @@ body{background:#0b1728;color:#eef3f8}
 footer .brand{width:210px}
 @media(max-width:820px){.topbar .brand{width:145px}.hero-emblem{width:290px;right:-20px;bottom:22px}}
 @media(max-width:540px){.brand{width:136px;min-width:136px}.brand img{width:100%;height:auto}}
+
+/* Hero clean: a primeira tela prioriza a mensagem e a ação principal. */
+.hero{background:linear-gradient(135deg,#071426 0%,#102b4a 100%);min-height:690px}
+.hero-copy{max-width:680px}
+.hero h1{max-width:700px}
+.hero-art{display:none}
+.hero-foot{bottom:26px;color:rgba(216,226,238,.68)}
+.whatsapp-float{right:22px;bottom:92px;width:58px;height:58px;padding:0;border-radius:50%;justify-content:center;z-index:30;box-shadow:0 8px 22px rgba(0,0,0,.32),0 0 0 4px rgba(31,168,85,.16)}
+.whatsapp-float span{width:31px;height:31px;border-width:2px;font-size:21px}
+.whatsapp-float b{display:none}
+.whatsapp-float:hover{transform:translateY(-3px) scale(1.04)}
+@media(max-width:820px){.hero{min-height:650px;padding-top:145px}.hero-foot{bottom:24px}}
+@media(max-width:420px){.whatsapp-float{right:16px;bottom:84px;width:54px;height:54px}.whatsapp-float span{width:29px;height:29px;font-size:19px}}
