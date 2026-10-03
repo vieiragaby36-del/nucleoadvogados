@@ -19,7 +19,7 @@
     });
     nav.addEventListener('click', e => { if (e.target.closest('a')) close(); });
     window.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
-    window.addEventListener('resize', () => { if (innerWidth > 1050) close(); });
+    window.addEventListener('resize', () => { if (innerWidth > 900) close(); });
     for (const link of nav.querySelectorAll('a')) {
       if (link.pathname === location.pathname && !link.hash) link.setAttribute('aria-current', 'page');
     }

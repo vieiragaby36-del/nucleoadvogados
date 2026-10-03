@@ -29,4 +29,4 @@ html{color-scheme:light}
 .site-footer .footer-identity img{filter:brightness(0)}
 .whatsapp-float{color:#fff}
 .breadcrumbs span:last-child,.detail-layout aside a{color:#62430f}.detail-layout p,.editorial-grid p:not(.eyebrow),.sector-page p,.editorial-empty p,.page-hero>p:last-child,.profile-hero p:not(.eyebrow),.search-results>p,.search-item p,.editorial-categories span{color:#3e576d}
-@media(max-width:1050px){.primary-nav{background:#f6f8fa}.primary-nav a{border-color:#a7b8c6}.mobile-client-link{color:#62430f!important}.menu-toggle span:not(.sr-only){background:#62430f}}
+@media(max-width:900px){.primary-nav{background:#f6f8fa}.primary-nav a{border-color:#a7b8c6}.mobile-client-link{color:#62430f!important}.menu-toggle span:not(.sr-only){background:#62430f}}
