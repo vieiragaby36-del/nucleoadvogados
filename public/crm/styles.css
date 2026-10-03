@@ -85,3 +85,15 @@ input,select,textarea{background:#fff;color:var(--text);border-color:#c9d5e1}
 .assigned-list .badge{display:inline-flex;align-items:center;gap:6px}
 .assigned-list button{border:0;background:none;color:inherit;cursor:pointer;font-size:18px;line-height:1}
 @media(max-width:760px){.request-card{flex-direction:column}.request-actions{width:100%}.document-row{align-items:flex-start}}
+.client-list{display:grid}
+.client-item{padding:18px 20px;border-bottom:1px solid var(--line);display:grid;gap:12px}
+.client-item:last-child{border-bottom:0}
+.client-item-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.client-item-head strong,.client-item-head small{display:block}
+.client-item-head small{color:var(--muted);margin-top:5px;overflow-wrap:anywhere}
+.client-item .assignment{border-top:1px solid var(--line);padding-top:12px}
+.upload-form .message{flex-basis:100%;margin:0}
+.intake-body .message{margin:0}
+:where(a,button,input,select,textarea):focus-visible{outline:2px solid #9a6b21;outline-offset:2px}
+@media(max-width:760px){.auth-intro{min-height:0;padding:20px 24px 12px;gap:16px}.auth-intro .brand{width:min(220px,55vw)}.auth-intro h1{font-size:clamp(29px,7.5vw,40px);line-height:1.08;margin:8px 0}.auth-intro>div>p:last-child{font-size:14px;line-height:1.45;margin:8px 0}.auth-panel{padding:12px 16px 28px;place-items:stretch}.auth-card{width:100%;max-width:500px;justify-self:center;padding:24px}.client-item{padding:16px}.assignment label{min-width:100%}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
