@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /crm/
+Sitemap: https://nucleo-advogados.netlify.app/sitemap.xml

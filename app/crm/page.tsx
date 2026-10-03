@@ -2,7 +2,7 @@ import { requireChatGPTUser, chatGPTSignOutPath } from "@/app/chatgpt-auth";
 import CrmApp from "./CrmApp";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Área do Cliente | Ramos Advocacia", robots: { index: false, follow: false } };
+export const metadata = { title: "Área do Cliente | Núcleo Advogados", robots: { index: false, follow: false } };
 
 export default async function CrmPage() {
   const user = await requireChatGPTUser("/crm");
