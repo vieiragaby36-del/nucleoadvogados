@@ -26,6 +26,15 @@
   <link rel="stylesheet" href="theme-controls.css" />
   <link rel="stylesheet" href="light.css" id="light-theme" disabled />
   <script>
+    // Compatibilidade: links antigos de recuperação do Netlify seguem para o CRM atual.
+    try {
+      const recoveryParams = `${location.search}&${location.hash.replace(/^#/, "")}`;
+      if (/(?:^|[&#?])type=recovery(?:&|$)/.test(recoveryParams)) {
+        location.replace(`https://nucleoadvogados.onrender.com/crm/${location.search}${location.hash}`);
+      }
+    } catch (_) {}
+  </script>
+  <script>
     try { if (localStorage.getItem('nucleo-theme') === 'light') document.getElementById('light-theme').disabled = false; } catch (_) {}
   </script>
 </head>
