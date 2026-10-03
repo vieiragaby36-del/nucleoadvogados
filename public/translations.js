@@ -1,7 +1,8 @@
 // Traduções editoriais da página pública. Nomes, registros profissionais e contatos permanecem inalterados.
 const copy = [
   [".topbar nav a", ["Sobre", "Atuação", "Diferenciais", "Contato"], ["About", "Practice", "Why us", "Contact"], ["Nosotros", "Áreas", "Diferenciales", "Contacto"], ["À propos", "Domaines", "Nos atouts", "Contact"]],
-  [".topbar .client-area", "Área do Cliente", "Client Area", "Área del cliente", "Espace client"],
+  [".topbar .client-label-full", "Área do Cliente", "Client Area", "Área del cliente", "Espace client"],
+  [".topbar .client-label-short", "Cliente", "Client", "Cliente", "Client"],
   [".menu-toggle", "Menu", "Menu", "Menú", "Menu"],
   [".hero .eyebrow", "NÚCLEO ADVOGADOS · DESDE 2020", "NÚCLEO ADVOGADOS · SINCE 2020", "NÚCLEO ADVOGADOS · DESDE 2020", "NÚCLEO ADVOGADOS · DEPUIS 2020"],
   [".hero h1", "Segurança jurídica<br><em>para decisões</em> que importam.", "Legal certainty<br><em>for decisions</em> that matter.", "Seguridad jurídica<br><em>para decisiones</em> que importan.", "Sécurité juridique<br><em>pour les décisions</em> essentielles.", "html"],
@@ -48,7 +49,7 @@ try {
   const saved = localStorage.getItem("nucleo-language");
   if (["pt", "en", "es", "fr"].includes(saved)) select.value = saved;
 } catch { /* Storage can be unavailable in private browsing. */ }
-const arrowSelectors = new Set([".topbar .client-area", ".hero .gold", ".intro-text .text-link", ".contact .gold", ".client-panel .button"]);
+const arrowSelectors = new Set([".hero .gold", ".intro-text .text-link", ".contact .gold", ".client-panel .button"]);
 const controls = {
   pt: { language: "Idioma", menu: "Abrir menu", whatsapp: "Falar com o Núcleo Advogados pelo WhatsApp", light: "Modo claro", dark: "Modo escuro", activateLight: "Ativar tema claro", activateDark: "Ativar tema escuro" },
   en: { language: "Language", menu: "Open menu", whatsapp: "Contact Núcleo Advogados on WhatsApp", light: "Light mode", dark: "Dark mode", activateLight: "Enable light mode", activateDark: "Enable dark mode" },
@@ -74,6 +75,7 @@ function translate(lang) {
   select.setAttribute("aria-label", labels.language);
   document.querySelector(".language-control label").textContent = labels.language;
   document.querySelector(".menu-toggle").setAttribute("aria-label", labels.menu);
+  document.querySelector(".topbar .client-area").setAttribute("aria-label", [null, "Área do Cliente", "Client Area", "Área del cliente", "Espace client"][index]);
   document.querySelector(".whatsapp-float").setAttribute("aria-label", labels.whatsapp);
   const theme = document.querySelector(".theme-toggle");
   const light = !document.getElementById("light-theme").disabled;
