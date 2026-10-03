@@ -23,5 +23,5 @@ footer{background:#102b4a}
 @media(max-width:540px){.topbar .brand img{width:100%;height:auto}}
 @media(max-width:540px){.topbar{gap:7px;padding-inline:14px}.topbar .brand{width:110px;min-width:110px}.header-cta{padding:8px 7px}}
 @media(max-width:375px){.topbar .brand{width:92px;min-width:92px}}
-.hero::before{opacity:.17}
-.hero::after{background:linear-gradient(90deg,rgba(255,255,255,.96) 0%,rgba(247,251,255,.82) 51%,rgba(240,247,255,.46) 100%)}
+.hero::before{opacity:.35}
+.hero::after{background:linear-gradient(90deg,rgba(255,255,255,.97) 0%,rgba(247,251,255,.78) 51%,rgba(240,247,255,.22) 100%)}
