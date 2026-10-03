@@ -106,7 +106,13 @@ function authError(message = "") {
 
 async function handleSession(session) {
   state.session = session;
-  if (recoveryActive) return showRecovery();
+  if (recoveryActive) {
+    if (session) return showRecovery();
+    recoveryActive = false;
+    showAuth(); setAuthMode("reset");
+    showMessage("#auth-message", "O link expirou ou é inválido. Solicite um novo link de recuperação.", "error");
+    return;
+  }
   if (!session) return showAuth();
   $("#auth").classList.add("hidden");
   $("#boot").classList.remove("hidden");
