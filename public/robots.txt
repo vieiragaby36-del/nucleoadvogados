@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /crm/
-Sitemap: https://nucleo-advogados.netlify.app/sitemap.xml
+Sitemap: https://nucleoadvogados.onrender.com/sitemap.xml
