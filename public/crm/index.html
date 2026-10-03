@@ -14,7 +14,7 @@
 
   <main id="auth" class="auth-page hidden">
     <section class="auth-intro">
-      <a href="/home.html" class="brand"><img src="/nucleo-logo.png" alt="Núcleo Advogados"></a>
+      <a href="/home.html" class="brand"><img src="/nucleo-logo-white.png" alt="Núcleo Advogados"></a>
       <div><p class="eyebrow">PORTAL SEGURO</p><h1>Seu atendimento jurídico em um só lugar.</h1><p>Acompanhe processos, tarefas e compromissos compartilhados pela equipe.</p></div>
       <p class="auth-legal">Mauro Cesar Ramos de Almeida · OAB/SP nº 133527</p>
     </section>
@@ -55,17 +55,19 @@
 
   <div id="portal" class="shell hidden">
     <aside class="sidebar" id="sidebar">
-      <a href="/home.html" class="brand"><img src="/nucleo-logo.png" alt="Núcleo Advogados"></a>
+      <a href="/home.html" class="brand"><img src="/nucleo-logo-white.png" alt="Núcleo Advogados"></a>
       <p class="side-caption" id="side-caption">ÁREA DO CLIENTE</p>
       <nav id="nav" aria-label="Navegação do portal"></nav>
       <div class="side-bottom"><span id="access-label">Acesso protegido</span><a href="/home.html">← Voltar ao site</a></div>
     </aside>
+    <button id="sidebar-scrim" class="sidebar-scrim" type="button" aria-label="Fechar menu"></button>
     <section class="main-area">
       <header class="topbar">
         <button id="menu-toggle" class="icon-button mobile-only" aria-label="Abrir menu">☰</button>
-        <div class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Buscar registros…" aria-label="Buscar registros"></div>
+        <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input id="search" type="search" placeholder="Buscar registros…" aria-label="Buscar registros"></div>
+        <button id="quick-new" class="primary quick-new hidden" type="button" data-new="contact">＋ Novo lead</button>
         <span id="account-email" class="account-email"></span>
-        <button id="sign-out" class="icon-button" title="Sair" aria-label="Sair">↪</button>
+        <button id="sign-out" class="icon-button" title="Sair" aria-label="Sair"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5M14 7l5 5-5 5M19 12H8"/></svg></button>
       </header>
       <main class="content">
         <div id="page-head" class="page-head"></div>
@@ -88,4 +90,3 @@
   <script type="module" src="./app.js"></script>
 </body>
 </html>
-

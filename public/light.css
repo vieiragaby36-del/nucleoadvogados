@@ -1,27 +1,32 @@
-/* Núcleo Advogados — direção clara em azul e dourado. */
-:root{--paper:#f8fbff;--gold:#b58a40;--line:rgba(25,63,109,.18)}
-body{background:#fff;color:#102b4a}
-.topbar,.topbar.scrolled{background:rgba(255,255,255,.97);color:#102b4a;border-bottom:1px solid #dce5ee;box-shadow:0 5px 25px rgba(12,43,75,.06)}
-.topbar nav a:hover{color:#1a5a9a}
-.header-cta{background:#1764a7;color:#fff;border:1px solid #1764a7;border-radius:4px;padding:12px 19px;font-weight:700;box-shadow:0 6px 17px rgba(23,100,167,.16)}
-.header-cta:hover,.blue-button:hover{background:#0d4b84;color:#fff}
-.hero{background:radial-gradient(circle at 82% 44%,#dbeafa 0,transparent 28%),linear-gradient(116deg,#fff 9%,#f0f7ff 100%);color:#102b4a;border-bottom:1px solid #dbe5f0}
-.hero h1{max-width:880px}.hero em{color:#a77b34}.lead{color:#4c6176}.hero .text-link{color:#174f85}
-.hero-art{color:#b58a40;border-left-color:rgba(181,138,64,.65)}.seal{color:rgba(24,83,143,.1)}.hero-foot{color:#607a94}
-.gold{background:#bd9651;color:#102b4a}.gold:hover{background:#d0ae6b}
-.ticker{background:#eaf3fc;color:#123a61;border-bottom:1px solid #d8e6f3}.ticker div,.ticker div:first-child{border-color:#caddeb}.ticker b{color:#996f2d}.ticker span{color:#315475}
-.intro{background:#fff}.about-band{background:#edf4fa}.about-band div{border-color:#adc5d9}.about-band strong{color:#123b62}.about-band span{color:#45647f}
-.practice{background:#f7fbff;color:#102b4a}.practice-grid{border-top-color:#c8d7e6}.practice article{border-color:#c8d7e6;background:#fff;transition:background .2s,transform .2s}.practice article:hover{background:#edf5fc;transform:translateY(-2px)}.practice article span{color:#9a7132}.practice article p,.section-heading>p:last-child,.more-areas p{color:#4d647c}.more-areas{border-color:#c8d7e6}.more-areas summary{color:#174f85}
-.method{background:#fff}.method li,.method ol{border-color:#c6d5e3}.method li>span{color:#a47a39}.method li p{color:#52677a}
-.quote{background:#e9f2fb;color:#123b62;border-top:1px solid #d7e5f2;border-bottom:1px solid #d7e5f2}.quote-mark{color:#bb9451}.quote p{color:#8b682f}
-.contact{background:#f7fbff;color:#102b4a}.contact>div>p:not(.eyebrow),.contact-info p{color:#4d647c}.contact-info,.contact-info>div{border-color:#c8d7e6}.contact-info span{color:#936b2d}.contact-info a{color:#164f86}
-.client-panel{padding:76px clamp(24px,10vw,164px);background:#eaf3fc;display:flex;justify-content:space-between;align-items:center;gap:40px;border-top:1px solid #d6e6f3}.client-panel div{max-width:720px}.client-panel h2{font-family:'Playfair Display',serif;font-size:clamp(2rem,3.4vw,3.6rem);font-weight:500;line-height:1.1;letter-spacing:-.03em;margin:0}.client-panel p:last-child{font-size:17px;color:#52677a}.blue-button{background:#1764a7;color:#fff;white-space:nowrap;border-radius:4px}
-footer{background:#102b4a}
-@media(max-width:820px){.topbar nav.open{background:#fff;color:#102b4a;border-top-color:#dce5ee;box-shadow:0 14px 24px rgba(12,43,75,.1)}.menu-toggle{color:#102b4a}.header-cta{display:block;margin-left:auto;font-size:12px;padding:9px 12px}.menu-toggle{margin-left:0}.hero-art{opacity:.3}.client-panel{flex-direction:column;align-items:flex-start;padding:70px 24px}.hero-foot{gap:12px}}
-@media(max-width:540px){.topbar{gap:10px}.brand{width:auto;min-width:116px}.brand img{width:31px;height:31px}.brand strong{font-size:10px}.brand small{font-size:6px}.header-cta{font-size:11px;padding:8px 9px}.header-cta b{display:none}.hero{padding-top:150px}.hero h1{font-size:clamp(2.8rem,12vw,3.7rem)}.hero-foot{font-size:10px}.ticker{grid-template-columns:1fr 1fr}.ticker span{font-size:12px}.contact-info a{font-size:18px;overflow-wrap:anywhere}}
-.topbar .brand img{filter:brightness(0);opacity:.83}
-@media(max-width:540px){.topbar .brand img{width:100%;height:auto}}
-@media(max-width:540px){.topbar{gap:7px;padding-inline:14px}.topbar .brand{width:110px;min-width:110px}.header-cta{padding:8px 7px}}
-@media(max-width:375px){.topbar .brand{width:92px;min-width:92px}}
-.hero::before{opacity:.35}
-.hero::after{background:linear-gradient(90deg,rgba(255,255,255,.97) 0%,rgba(247,251,255,.78) 51%,rgba(240,247,255,.22) 100%)}
+/* Optional light setting. The public site opens in its dark institutional palette. */
+:root{--navy:#f6f8fa;--blue:#e9eff4;--blue2:#dce7ef;--surface:#fff;--text:#132a40;--muted:#3e576d;--line:#a7b8c6;--paper:#e9eff4;--paper-text:#14283d;--paper-muted:#40576b}
+html{color-scheme:light}
+.site-header{background:rgba(248,250,252,.97);border-color:#a8b9c8}
+.brand img{filter:brightness(0) saturate(100%)}
+.primary-nav a,.search-trigger{color:#132a40}
+.client-link{color:#62430f;border-color:#85601d}
+.client-link:hover{color:#fff;background:#654817}
+.language-control{color:#3b5267;border-color:#a7b8c6}
+.theme-toggle{color:#62430f;border-color:#85601d}
+.hero-lead,.hero-location{color:#3e576d}
+.hero-image{border-color:#a7b8c6}
+.hero-image:after{background:linear-gradient(90deg,rgba(246,248,250,.35),transparent 35%),linear-gradient(0deg,rgba(7,20,38,.7),transparent 35%)}
+.hero-image .image-caption{color:#fff}
+.button-gold{background:#a97625;color:#fff}.button-gold:hover{background:#80591d}
+.button-outline{border-color:#85601d;color:#62430f}.button-outline:hover{background:#f0e6d2}
+.inline-link,.card-link,.additional-areas a,.contact-details a:hover{color:#62430f}.inline-link:hover{color:#352400}
+.eyebrow,.practice-number,.contact-details span{color:#795315}
+.help{background:#e9eff4;border-color:#a7b8c6}.help-links a:hover,.practice-card:hover{background:#dbe6ee}
+.help-links em,.intro-copy p:not(.eyebrow),.practice-card p,.additional-areas,.sectors p:not(.eyebrow),.team-copy p:not(.eyebrow),.intelligence p:not(.eyebrow),.tools-section p:not(.eyebrow),.contact-lead>p:not(.eyebrow),.contact-details p,.client-panel p:not(.eyebrow){color:#3e576d}
+.help-links b,.intelligence-index a span,.related-links a span,.sector-paths a span{color:#795315}
+.intro,.sectors,.intelligence,.tools-section,.client-panel,.page-hero,.related,.simple-cta,.profile-hero{background:var(--blue)}
+.practice,.team,.contact,.detail-layout,.editorial-empty{background:#f6f8fa}
+.team-profile div,.team-profile span{color:#fff}.team-profile h3{color:#fff}
+.sector-list span{color:var(--text)}
+.contact-form{background:#fff;border-color:#a7b8c6}.contact-form legend,.contact-form label{color:#14283d}.contact-form input:not([type=radio]):not([type=checkbox]),.contact-form textarea,.search-hero input{background:#fff;color:#14283d;border-color:#7c92a4}.choice-list span{color:#14283d;border-color:#7c92a4}.choice-list input:checked+span{background:#a97625;color:#fff;border-color:#a97625}.privacy-check{color:#3e576d!important}.privacy-check a{color:#654817}.contact-status{color:#62430f}
+.client-panel .button-outline{color:#62430f}
+.site-footer{background:#e9eff4;color:#183048}.footer-identity p,.footer-column a,.footer-bottom{color:#30495e}.footer-identity span,.footer-column h2{color:#62430f}
+.site-footer .footer-identity img{filter:brightness(0)}
+.whatsapp-float{color:#fff}
+.breadcrumbs span:last-child,.detail-layout aside a{color:#62430f}.detail-layout p,.editorial-grid p:not(.eyebrow),.sector-page p,.editorial-empty p,.page-hero>p:last-child,.profile-hero p:not(.eyebrow),.search-results>p,.search-item p,.editorial-categories span{color:#3e576d}
+@media(max-width:1050px){.primary-nav{background:#f6f8fa}.primary-nav a{border-color:#a7b8c6}.mobile-client-link{color:#62430f!important}.menu-toggle span:not(.sr-only){background:#62430f}}

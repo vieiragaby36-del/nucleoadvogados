@@ -231,6 +231,7 @@ async function loadPortal() {
     $("#boot").classList.add("hidden");
     $("#portal").classList.remove("hidden");
     $("#account-email").textContent = profile.email;
+    $("#quick-new").classList.toggle("hidden", !staff());
     renderNav(); render();
   } catch (error) {
     console.error("[Núcleo Advogados] Falha ao carregar o portal", error);
@@ -241,6 +242,18 @@ async function loadPortal() {
 }
 
 function renderNav() {
+  const icons = {
+    dashboard: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+    leads: '<path d="m12 2 9 10-9 10L3 12 12 2Z"/><path d="M7 12h10"/>',
+    clients: '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+    intake: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h6"/>',
+    cases: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M2 12h20"/>',
+    tasks: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="m7 12 3 3 7-7"/>',
+    agenda: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/>',
+    documents: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h8"/>',
+    requests: '<path d="M4 4h16l2 12v4H2v-4L4 4ZM2 16h6a4 4 0 0 0 8 0h6"/>',
+    team: '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'
+  };
   const items = state.profile.role === "pending" ? [["intake", "✎", "Meu cadastro"], ["documents", "▤", "Documentos"]] : [
     ["dashboard", "▦", "Visão geral"],
     ...(staff() ? [["leads", "◇", "Leads"], ["clients", "◉", "Clientes"]] : [["intake", "✎", "Meu cadastro"]]),
@@ -248,7 +261,7 @@ function renderNav() {
     ["documents", "▤", "Documentos"],
     ...(state.profile.role === "owner" ? [["requests", "◷", "Cadastros recebidos"], ["team", "♙", "Equipe"]] : [])
   ];
-  $("#nav").innerHTML = items.map(([id, icon, label]) => `<button data-view="${id}" class="${state.view === id ? "active" : ""}"><span>${icon}</span>${label}</button>`).join("");
+  $("#nav").innerHTML = items.map(([id, , label]) => `<button type="button" data-view="${id}" class="${state.view === id ? "active" : ""}" ${state.view === id ? 'aria-current="page"' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[id]}</svg><span>${label}</span></button>`).join("");
   $("#side-caption").textContent = staff() ? "GESTÃO DO ESCRITÓRIO" : "ÁREA DO CLIENTE";
   $("#access-label").textContent = staff() ? "Painel protegido da equipe" : "Acesso privado do cliente";
 }
@@ -292,10 +305,10 @@ function renderDashboard() {
   const registrations = intakeLeads();
   const clients = state.contacts.filter((c) => c.kind === "client");
   const pending = state.tasks.filter((t) => !t.done);
-  const cards = staff() ? [["Leads", leads.length + registrations.length, "Inclui cadastros iniciados"], ["Clientes", clients.length, "Clientes ativos"], ["Processos", state.cases.length, "Casos registrados"], ["Tarefas pendentes", pending.length, "Para acompanhar"]] : [["Processos", state.cases.length, "Compartilhados com você"], ["Compromissos", pending.length, "Tarefas em aberto"], ["Concluídos", state.tasks.filter((t) => t.done).length, "Compromissos finalizados"], ["Atualizações", state.cases.length + state.tasks.length, "Itens disponíveis"]];
+  const cards = staff() ? [["Leads", leads.length + registrations.length, "Inclui cadastros iniciados", "leads"], ["Clientes", clients.length, "Clientes ativos", "clients"], ["Processos", state.cases.length, "Casos registrados", "cases"], ["Tarefas pendentes", pending.length, "Para acompanhar", "tasks"]] : [["Processos", state.cases.length, "Compartilhados com você", "cases"], ["Compromissos", pending.length, "Tarefas em aberto", "agenda"], ["Concluídos", state.tasks.filter((t) => t.done).length, "Compromissos finalizados", "tasks"], ["Atualizações", state.cases.length + state.tasks.length, "Itens disponíveis", "dashboard"]];
   const stages = ["novo", "em contato", "proposta enviada", "negociação"];
   const main = staff() ? `<div class="pipeline">${stages.map((stage) => `<div class="pipeline-column"><h3>${stage}<span>${leads.filter((c) => c.stage === stage).length}</span></h3>${leads.filter((c) => c.stage === stage).slice(0, 4).map((c) => `<button class="pipeline-item" data-edit="contact" data-id="${c.id}"><strong>${esc(c.name)}</strong><small>${esc(c.source || "Sem origem")}</small></button>`).join("")}</div>`).join("")}</div>${registrations.length ? `<div class="intake-leads-head"><strong>Cadastros iniciados</strong><button type="button" class="row-action" data-view="requests">Ver todos</button></div>${registrations.slice(0, 4).map(intakeLeadRow).join("")}` : ""}` : recordList(state.cases, "Nenhum processo compartilhado ainda.", (c) => `<div><strong>${esc(c.title)}</strong><small>${esc(c.area || "Área não informada")}</small></div><span></span><span class="badge">${esc(c.status)}</span>`);
-  $("#workspace").innerHTML = `<div class="kpis">${cards.map(([label, value, note]) => `<div class="card"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`).join("")}</div><div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>${staff() ? "Funil de oportunidades" : "Seus processos"}</h2></div>${main}</section><section class="panel"><div class="panel-head"><h2>Próximos compromissos</h2></div>${recordList(pending.slice(0, 6), "Nenhum compromisso pendente.", (t) => `<div><strong>${esc(t.title)}</strong><small>${staff() ? esc(contactName(t.contact_id)) : "Compartilhado com você"}</small></div><span></span><span class="badge">${date(t.due_at)}</span>`)}</section></div>`;
+  $("#workspace").innerHTML = `${staff() ? '<div class="dashboard-actions"><span>Seu espaço de trabalho</span><div><button type="button" class="secondary" data-new="contact">＋ Novo lead</button><button type="button" class="secondary" data-new="task">＋ Nova tarefa</button></div></div>' : ''}<div class="kpis">${cards.map(([label, value, note, view]) => `<button type="button" class="card" data-view="${view}" aria-label="${label}: ${value}. Abrir seção"><span>${label}</span><strong>${value}</strong><small>${note}</small><b aria-hidden="true">↗</b></button>`).join("")}</div><div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>${staff() ? "Funil de oportunidades" : "Seus processos"}</h2>${staff() ? '<button type="button" class="row-action" data-view="leads">Ver todos ↗</button>' : ''}</div>${main}</section><section class="panel"><div class="panel-head"><h2>Próximos compromissos</h2><button type="button" class="row-action" data-view="agenda">Ver agenda ↗</button></div>${recordList(pending.slice(0, 6), "Nenhum compromisso pendente.", (t) => `<div><strong>${esc(t.title)}</strong><small>${staff() ? esc(contactName(t.contact_id)) : "Compartilhado com você"}</small></div><span></span><span class="badge">${date(t.due_at)}</span>`)}</section></div>`;
 }
 
 function recordList(items, message, content, action = "") {
@@ -496,7 +509,7 @@ document.addEventListener("click", async (event) => {
   const unassign = event.target.closest("[data-unassign]");
   if (unassign) return updateAssignment(unassign.dataset.unassign,unassign.dataset.staff,true);
   const view = event.target.closest("[data-view]")?.dataset.view;
-  if (view) { state.view = view; state.search = ""; $("#search").value = ""; $("#sidebar").classList.remove("open"); renderNav(); render(); return; }
+  if (view) { state.view = view; state.search = ""; $("#search").value = ""; $("#sidebar").classList.remove("open"); $("#sidebar-scrim").classList.remove("open"); renderNav(); render(); return; }
   const add = event.target.closest("[data-new]")?.dataset.new; if (add) return openDialog(add);
   if (event.target.closest("[data-close-dialog]")) return $("#record-dialog").close();
   const edit = event.target.closest("[data-edit]"); if (edit) { const collection = edit.dataset.edit === "contact" ? state.contacts : edit.dataset.edit === "case" ? state.cases : state.tasks; return openDialog(edit.dataset.edit, collection.find((item) => item.id === edit.dataset.id)); }
@@ -512,7 +525,9 @@ document.querySelectorAll("[data-auth-mode]").forEach((button) => button.addEven
 $("#auth-form").addEventListener("submit", submitAuth); $("#signup-back").addEventListener("click", () => { state.signupDraft = null; setAuthMode("signup"); }); $("#record-form").addEventListener("submit", saveRecord);
 $("#recovery-form").addEventListener("submit", submitRecovery);
 $("#search").addEventListener("input", (event) => { state.search = event.target.value.trim().toLowerCase(); render(); });
-$("#menu-toggle").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
+$("#menu-toggle").addEventListener("click", () => { $("#sidebar").classList.toggle("open"); $("#sidebar-scrim").classList.toggle("open"); });
+$("#sidebar-scrim").addEventListener("click", () => { $("#sidebar").classList.remove("open"); $("#sidebar-scrim").classList.remove("open"); });
+window.addEventListener("keydown", (event) => { if (event.key === "Escape") { $("#sidebar").classList.remove("open"); $("#sidebar-scrim").classList.remove("open"); } });
 $("#sign-out").addEventListener("click", async () => { if (supabase) await supabase.auth.signOut(); });
 
 setAuthMode("login");
@@ -525,4 +540,3 @@ else {
   const { data } = await supabase.auth.getSession(); await handleSession(data.session);
   if (!data.session) showUrlError();
 }
-
