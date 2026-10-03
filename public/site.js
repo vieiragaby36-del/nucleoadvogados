@@ -52,7 +52,7 @@
     ].join('\n');
     const status = document.getElementById('contact-status');
     status.hidden = false;
-    status.textContent = 'Mensagem preparada. Conclua o envio no seu aplicativo de e-mail.';
+    status.textContent = ({en: 'Message prepared. Complete the send in your email application.', es: 'Mensaje preparado. Complete el envío en su aplicación de correo.', fr: 'Message préparé. Finalisez l’envoi dans votre messagerie.'})[document.documentElement.lang] || 'Mensagem preparada. Conclua o envio no seu aplicativo de e-mail.';
     location.href = 'mailto:contato@nucleoadvogados.com.br?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
   });
   const search = document.getElementById('site-search');
