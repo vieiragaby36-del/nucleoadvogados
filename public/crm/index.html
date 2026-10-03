@@ -28,6 +28,15 @@
           <label id="password-field">Senha<input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="8" required></label>
           <button class="primary full" id="auth-submit" type="submit">Entrar</button>
         </form>
+        <form id="signup-form" class="hidden">
+          <label>Nome completo<input name="full_name" type="text" autocomplete="name" minlength="2" maxlength="160" required></label>
+          <label>Telefone com DDD<input name="phone" type="tel" autocomplete="tel" minlength="8" maxlength="50" required></label>
+          <label>Assunto do atendimento<input name="subject" type="text" minlength="5" maxlength="180" required></label>
+          <label>Conte brevemente sua necessidade<textarea name="description" minlength="10" maxlength="3000" rows="5" required></textarea></label>
+          <label class="check"><input name="privacy" type="checkbox" required> Confirmo que os dados são verdadeiros e li a <a href="/politica-de-privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>.</label>
+          <button class="primary full" id="signup-submit" type="submit">Enviar cadastro</button>
+          <button class="secondary full" id="signup-back" type="button">Voltar</button>
+        </form>
         <form id="recovery-form" class="hidden">
           <label>Nova senha<input id="new-password" type="password" autocomplete="new-password" minlength="8" required></label>
           <label>Confirme a nova senha<input id="confirm-password" type="password" autocomplete="new-password" minlength="8" required></label>
@@ -79,3 +88,4 @@
   <script type="module" src="./app.js"></script>
 </body>
 </html>
+
