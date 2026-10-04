@@ -24,6 +24,7 @@
     else if (/crime|delegacia|inquérito|prisão|acus/.test(normalized)) { area = 'Criminal'; checklist = 'Se houver risco imediato ou prisão, procure atendimento jurídico urgente e preserve intimações e documentos.'; }
     else if (/tribut|imposto|multa fiscal|fisco/.test(normalized)) { area = 'Tributário'; checklist = 'Separe notificações, autos, guias, comprovantes e os períodos a que a cobrança se refere.'; }
     answer.hidden = false;
-    answer.innerHTML = `<strong>Orientação inicial</strong>Seu relato parece relacionado a <b>${area}</b>. ${checklist} A equipe do Núcleo Advogados poderá confirmar o enquadramento e indicar os próximos passos após conhecer os detalhes. <br><br><a class="button button-gold" href="/triagem.html">Continuar para a triagem segura →</a>`;
+    answer.innerHTML = `<strong>Orientação inicial</strong>Seu relato parece relacionado a <b>${area}</b>. ${checklist} A equipe do Núcleo Advogados poderá confirmar o enquadramento e indicar os próximos passos após conhecer os detalhes. <br><br><a class="button button-gold" data-ai-continue href="/triagem.html">Continuar para a triagem segura →</a>`;
+    answer.querySelector('[data-ai-continue]').addEventListener('click', () => { try { sessionStorage.setItem('nucleo-ai-draft', text); } catch {} });
   });
 })();
