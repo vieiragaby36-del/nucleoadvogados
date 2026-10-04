@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="theme-color" content="#071426">
+    <meta name="robots" content="noindex">
+    <title>Falar com um advogado | Núcleo Advogados</title>
+    <meta name="description" content="Envie uma breve descrição do seu caso para que a equipe do Núcleo Advogados direcione o seu atendimento.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/triagem.css">
+  </head>
+  <body>
+    <main class="intake-shell">
+      <aside class="intake-aside">
+        <a class="intake-brand" href="/" aria-label="Núcleo Advogados — página inicial"><img src="/nucleo-logo-gold-white-text.png" alt="Núcleo Advogados"></a>
+        <div class="intake-aside-copy">
+          <p class="eyebrow">ATENDIMENTO INICIAL</p>
+          <h1>Seu caso merece uma escuta atenta.</h1>
+          <p>Este é um primeiro contato, simples e confidencial. A equipe analisará suas informações e retornará pelo WhatsApp informado.</p>
+        </div>
+        <p class="intake-aside-foot">Atendemos em todo o Brasil<br>Experiência desde 1996</p>
+      </aside>
+      <section class="intake-content" aria-labelledby="triage-title">
+        <a class="back-link" href="/">← Voltar ao site</a>
+        <div class="intake-card" id="triage-card">
+          <div id="triage-form-view">
+            <p class="eyebrow">PRIMEIRO CONTATO</p>
+            <h2 id="triage-title">Vamos entender o seu caso</h2>
+            <p class="intro">Conte brevemente o que aconteceu. Essas informações nos ajudam a entender sua demanda e direcionar seu atendimento.</p>
+            <form id="triage-form" novalidate>
+              <div class="field"><label for="triage-name">Seu nome</label><input id="triage-name" name="name" autocomplete="name" placeholder="Como podemos chamar você?" maxlength="160" required><p class="field-error" id="error-name"></p></div>
+              <div class="field"><label for="triage-phone">WhatsApp</label><input id="triage-phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="(11) 99999-9999" maxlength="15" required><p class="field-error" id="error-phone"></p></div>
+              <div class="field"><label for="triage-city">Cidade/UF</label><input id="triage-city" name="city" autocomplete="address-level2" placeholder="Ex.: São Paulo/SP" maxlength="120" required><p class="field-error" id="error-city"></p></div>
+              <fieldset class="field demand-field"><legend>Qual é a sua demanda?</legend><div class="demand-options" id="demand-options">
+                <label><input type="radio" name="area" value="Trabalhista"><span>Trabalhista</span></label><label><input type="radio" name="area" value="Família e Sucessões"><span>Família e Sucessões</span></label><label><input type="radio" name="area" value="Cível"><span>Cível</span></label><label><input type="radio" name="area" value="Previdenciário"><span>Previdenciário</span></label><label><input type="radio" name="area" value="Empresarial"><span>Empresarial</span></label><label><input type="radio" name="area" value="Imobiliário"><span>Imobiliário</span></label><label><input type="radio" name="area" value="Criminal"><span>Criminal</span></label><label><input type="radio" name="area" value="Tributário"><span>Tributário</span></label><label><input type="radio" name="area" value="Consumidor"><span>Consumidor</span></label><label><input type="radio" name="area" value="Outro"><span>Outro</span></label>
+              </div><p class="field-error" id="error-area"></p></fieldset>
+              <div class="field"><div class="label-row"><label for="triage-description">Conte o que aconteceu</label><span id="description-count" aria-live="polite">0 / 6.000</span></div><textarea id="triage-description" name="description" rows="7" maxlength="6000" placeholder="Explique sua situação com suas palavras. Não precisa usar termos jurídicos." required></textarea><p class="field-error" id="error-description"></p></div>
+              <fieldset class="field documents-field"><legend>Você já possui algum documento relacionado ao caso?</legend><div class="document-options"><label><input type="radio" name="documents" value="Sim"><span>Sim</span></label><label><input type="radio" name="documents" value="Não"><span>Não</span></label><label><input type="radio" name="documents" value="Não sei"><span>Não sei</span></label></div><p class="field-error" id="error-documents"></p></fieldset>
+              <button id="triage-submit" class="submit-button" type="submit"><span>Continuar atendimento</span> <b aria-hidden="true">→</b></button>
+              <p class="privacy">Seus dados serão utilizados exclusivamente para o atendimento da sua solicitação, de acordo com nossa <a href="/politica-de-privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>.</p>
+              <p class="form-message" id="triage-message" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+          <div id="triage-success" class="success-view" hidden aria-live="polite">
+            <span class="success-mark" aria-hidden="true">✓</span><p class="eyebrow">SOLICITAÇÃO ENVIADA</p><h2>Recebemos sua solicitação</h2><p>Suas informações foram enviadas para nossa equipe. Em breve, um profissional poderá entrar em contato pelo WhatsApp informado.</p><p class="attendance-number">Atendimento <strong id="attendance-number">#ATD-2026-0001</strong></p><div class="success-next"><h3>Quer acompanhar seu atendimento?</h3><p>Crie seu acesso para acompanhar seu atendimento, enviar documentos e conversar com nossa equipe.</p><a class="secondary-button" href="/crm/">Criar acesso ao painel <span aria-hidden="true">→</span></a></div><a class="back-link inline" href="/">Voltar ao site</a>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="/crm/config.js"></script>
+    <script type="module" src="/triagem.js"></script>
+  </body>
+</html>
