@@ -85,7 +85,7 @@
   const respond = (text) => {
     const normalized = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const areas = [
-      { pattern: /trabalho|demiss|salario|ferias|fgts|rescis|justa causa|horas extras|assedi/, name: 'Trabalhista', documents: 'contrato de trabalho, holerites, registro de ponto, mensagens e documentos de rescisão', next: 'Confira as datas de admissão, afastamento ou desligamento e não assine um documento sem entendê-lo.' },
+      { pattern: /trabalh|demiss|salario|ferias|fgts|rescis|justa causa|horas extras|assedi/, name: 'Trabalhista', documents: 'contrato de trabalho, holerites, registro de ponto, mensagens e documentos de rescisão', next: 'Confira as datas de admissão, afastamento ou desligamento e não assine um documento sem entendê-lo.' },
       { pattern: /divorc|guarda|pensao|heran|inventario|familia|uniao estavel|partilha/, name: 'Família e Sucessões', documents: 'certidões, comprovantes, acordos e registros das conversas relevantes', next: 'Separe as datas importantes, a situação atual dos envolvidos e o que você pretende alcançar.' },
       { pattern: /empresa|socio|contrato social|societ|startup|negocio|franquia/, name: 'Empresarial e Societário', documents: 'contrato social, acordos, contratos, notas e comunicações entre as partes', next: 'Identifique quem são os envolvidos, os prazos contratuais e o risco que precisa ser evitado.' },
       { pattern: /imovel|aluguel|locacao|compra e venda|condominio|despejo|usucap/, name: 'Imobiliário', documents: 'contrato, matrícula, comprovantes de pagamento, notificações e fotos', next: 'Não entregue chaves, assine distrato ou faça pagamentos sem guardar os comprovantes e analisar o documento.' },
