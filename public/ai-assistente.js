@@ -95,7 +95,11 @@
       { pattern: /compra|cobranca|produto|consumidor|servico|negativ|cartao|banco/, name: 'Consumidor', documents: 'contratos, notas, comprovantes de pagamento, protocolos e mensagens', next: 'Registre o protocolo de atendimento e organize uma linha do tempo das tentativas de solução.' },
       { pattern: /lgpd|dado pessoal|vazamento|privacidade|compliance|protecao de dados/, name: 'Compliance e LGPD', documents: 'políticas, contratos, comunicações, evidências do incidente e registros de acesso', next: 'Preserve os registros do ocorrido e evite apagar evidências antes de uma análise.' }
     ];
-    const match = areas.find(item => item.pattern.test(normalized));
+    const match = areas.find(item => item.pattern.test(normalized))
+      || (normalized.includes('trabalh') ? areas[0] : null)
+      || (normalized.includes('criminal') ? areas[4] : null)
+      || (normalized.includes('tribut') ? areas[5] : null)
+      || (normalized.includes('famil') ? areas[1] : null);
     const urgency = /hoje|amanha|prazo|urgente|preso|prisao|intimacao|audiencia|liminar|bloqueio|venc(e|ê) amanhã/.test(normalized);
     let message = match
       ? `Pelo que você descreveu, a demanda pode estar relacionada a ${match.name}. Para uma análise inicial, organize ${match.documents}. ${match.next}`
