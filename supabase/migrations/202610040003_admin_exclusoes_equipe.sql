@@ -1,5 +1,4 @@
 -- Administração do CRM: exclusões protegidas e funções de equipe.
-
 alter table public.team_invites add column if not exists team_function text not null default 'Atendente';
 alter table public.team_invites add column if not exists requested_role public.crm_role not null default 'staff';
 alter table public.team_invites drop constraint if exists team_invites_team_function_check;
