@@ -32,3 +32,5 @@ section[id]{scroll-margin-top:90px}.inner-page{padding-top:86px}.site-header{bor
 @media(min-width:901px) and (max-width:1240px){.header-inner{padding-left:clamp(18px,2.5vw,32px);padding-right:clamp(18px,2.5vw,32px);gap:12px}.brand{width:125px;min-width:125px}.primary-nav{gap:10px}.primary-nav a{font-size:12px}.header-tools{gap:6px}.client-link{gap:8px;padding:9px 10px;font-size:10px}}
 @media(max-width:900px){.hero:before{background-position:56% center;opacity:.46}.hero:after{background:linear-gradient(90deg,rgba(7,20,38,.94),rgba(7,20,38,.55))}}
 @media(prefers-reduced-motion:reduce){.hero:before{animation:none}}
+.contact-next-step{align-self:start;padding:clamp(26px,4vw,52px);background:#102b45;border:1px solid var(--line);display:grid;gap:17px}.contact-next-step h3{margin:0;color:var(--text);font:500 clamp(1.8rem,3vw,2.5rem)/1.2 'Playfair Display',Georgia,serif}.contact-next-step p{margin:0;color:var(--muted);font-size:16px;line-height:1.65}.contact-next-eyebrow{margin:0;color:var(--gold);font-size:11px;letter-spacing:.14em;font-weight:700}
+@media(max-width:760px){.contact-next-step{padding:24px}}
