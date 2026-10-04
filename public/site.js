@@ -37,7 +37,6 @@
     try { localStorage.setItem('nucleo-theme', sheet.disabled ? 'dark' : 'light'); } catch {}
     updateTheme();
   });
-  const form = document.getElementById('contact-form');
   const presence = document.querySelector('.presence');
   if (presence) {
     const first = presence.children[0];
@@ -47,30 +46,5 @@
   }
   const additionalAreas = document.querySelector('.additional-areas');
   if (additionalAreas) additionalAreas.innerHTML = 'Outras frentes também podem ser analisadas pelo escritório, incluindo Direito Penal, Trabalhista, Saúde, Infraestrutura e Licitações. <a href="/atuacao/criminal.html">Conheça a atuação criminal ↗</a>';
-  if (form) {
-    const leadCopy = document.querySelector('.contact-lead > p:not(.eyebrow)');
-    if (leadCopy) leadCopy.textContent = 'Conte brevemente o que aconteceu. Você receberá um protocolo e poderá acompanhar o atendimento pelo painel.';
-    const triage = document.createElement('div');
-    triage.className = 'contact-form contact-triage';
-    triage.innerHTML = '<p class="eyebrow">ATENDIMENTO INICIAL</p><h3>Vamos entender o seu caso.</h3><p>Conte o que aconteceu, crie seu acesso e acompanhe seu atendimento com segurança.</p><a class="button button-gold" href="/triagem.html">Falar com um advogado <span aria-hidden="true">→</span></a><p class="contact-help">Seu atendimento recebe um número de protocolo assim que a solicitação é enviada.</p>';
-    form.replaceWith(triage);
-  }
-  form?.addEventListener('submit', event => {
-    event.preventDefault();
-    if (!form.reportValidity()) return;
-    const data = new FormData(form);
-    const subject = 'Solicitação de atendimento — ' + String(data.get('subject') || 'Outro assunto');
-    const body = [
-      'Nome: ' + data.get('name'),
-      'E-mail: ' + data.get('email'),
-      'Telefone: ' + data.get('phone'),
-      'Assunto: ' + data.get('subject'),
-      '', 'Mensagem:', data.get('message')
-    ].join('\n');
-    const status = document.getElementById('contact-status');
-    status.hidden = false;
-    status.textContent = ({en: 'Message prepared. Complete the send in your email application.', es: 'Mensaje preparado. Complete el envío en su aplicación de correo.', fr: 'Message préparé. Finalisez l’envoi dans votre messagerie.'})[document.documentElement.lang] || 'Mensagem preparada. Conclua o envio no seu aplicativo de e-mail.';
-    location.href = 'mailto:contato@nucleoadvogados.com.br?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-  });
   if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 })();
