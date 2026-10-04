@@ -7,6 +7,14 @@ const descriptionCount = document.querySelector("#description-count");
 const submissionKeyName = "nucleo-triage-submission-key";
 const attendanceClaimName = "nucleo-attendance-claim";
 const claimTokenName = "nucleo-triage-claim-token";
+try {
+  const aiDraft = sessionStorage.getItem("nucleo-ai-draft");
+  if (aiDraft && description && !description.value) {
+    description.value = aiDraft;
+    description.dispatchEvent(new Event("input", { bubbles: true }));
+    sessionStorage.removeItem("nucleo-ai-draft");
+  }
+} catch {}
 
 const showError = (name, value = "") => {
   const target = document.querySelector(`#error-${name}`);
