@@ -17,8 +17,8 @@ AREAS = [
 ]
 
 NAV = [
-    ("O Escritório", "/escritorio.html"), ("Atuação", "/#atuacao"),
-    ("Setores", "/setores.html"), ("Contato", "/#contato"),
+    ("O Escritório", "/#escritorio"), ("Atuação", "/#atuacao"),
+    ("Setores", "/#setores"), ("Contato", "/#contato"),
 ]
 
 
