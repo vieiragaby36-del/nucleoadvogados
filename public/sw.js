@@ -1,7 +1,7 @@
-const CACHE_NAME = "nucleo-public-v26";
+const CACHE_NAME = "nucleo-public-v27";
 const PUBLIC_FILES = [
   "/", "/index.html", "/triagem.html", "/triagem.css", "/triagem-access.css", "/triagem.js", "/crm/config.js", "/styles-v15.css", "/theme-controls.css", "/light.css", "/site.js", "/translations.js", "/ai-assistente.js", "/ai-assistente.css", "/manifest.webmanifest",
-  "/nucleo-logo.png", "/nucleo-logo-white.png", "/nucleo-logo-gold.png", "/nucleo-logo-gold-white-text.png", "/nucleo-logo-gold-dark-text.png", "/nucleo-icon.png", "/nucleo-icon-white.png", "/nucleo-icon-192.png", "/favicon.png", "/office-building.webp", "/mauro-em-atividade.webp", "/sala-nucleo.webp",
+  "/nucleo-logo.png", "/nucleo-logo-white.png", "/nucleo-logo-gold.png", "/nucleo-logo-gold-white-text.png", "/nucleo-logo-gold-dark-text.png", "/nucleo-icon.png", "/nucleo-icon-white.png", "/nucleo-icon-192.png", "/favicon.png", "/office-building.webp", "/mauro-em-atividade.webp", "/mauro-ai-avatar.png", "/sala-nucleo.webp",
   "/escritorio.html", "/setores.html",
   "/atuacao/empresarial-e-societario.html", "/atuacao/tributario-e-administrativo.html", "/atuacao/contencioso-estrategico.html", "/atuacao/familia-e-patrimonio.html", "/atuacao/compliance-e-lgpd.html", "/atuacao/internacional-e-arbitragem.html", "/atuacao/criminal.html",
   "/politica-de-privacidade.html", "/termos-de-uso.html"

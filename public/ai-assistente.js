@@ -14,19 +14,26 @@
   dialog.setAttribute('aria-label', 'Assistente de orientação inicial');
   dialog.innerHTML = `
     <div class="ai-chat-shell">
-      <header class="ai-chat-header">
-        <div class="ai-chat-brand"><span class="ai-chat-symbol" aria-hidden="true">N</span><div><strong>Assistente Núcleo</strong><span>Orientação inicial automatizada</span></div></div>
-        <div class="ai-chat-header-actions"><button type="button" class="ai-chat-new" title="Nova conversa">Nova conversa</button><button type="button" class="ai-chat-close" aria-label="Fechar conversa">×</button></div>
-      </header>
-      <div class="ai-chat-messages" role="log" aria-label="Conversa" aria-live="polite" aria-relevant="additions"></div>
-      <div class="ai-chat-bottom">
-        <form class="ai-chat-form">
-          <label class="sr-only" for="ai-chat-input">Sua mensagem</label>
-          <textarea id="ai-chat-input" rows="2" maxlength="1800" placeholder="Escreva sua dúvida aqui…" required></textarea>
-          <button type="submit" class="ai-chat-send" aria-label="Enviar mensagem" title="Enviar mensagem">↑</button>
-        </form>
-        <p>Não envie documentos, CPF, senhas ou informações sigilosas. Orientação geral, não consulta jurídica. <a href="/politica-de-privacidade.html" target="_blank" rel="noopener">Privacidade</a></p>
-      </div>
+      <aside class="ai-chat-sidebar" aria-label="Navegação do assistente">
+        <div class="ai-chat-side-brand"><span class="ai-chat-symbol" aria-hidden="true">N</span><span>Núcleo Advogados</span></div>
+        <button type="button" class="ai-chat-new ai-chat-side-new"><span aria-hidden="true">＋</span> Nova conversa</button>
+        <div class="ai-chat-side-bottom"><span>Um primeiro passo para entender seu caso.</span><a href="/triagem.html">Falar com um advogado <span aria-hidden="true">↗</span></a></div>
+      </aside>
+      <main class="ai-chat-main">
+        <header class="ai-chat-header">
+          <div class="ai-chat-brand"><strong>Assistente Núcleo</strong><span>Orientação inicial automatizada</span></div>
+          <div class="ai-chat-header-actions"><button type="button" class="ai-chat-new ai-chat-mobile-new" aria-label="Nova conversa" title="Nova conversa">＋</button><button type="button" class="ai-chat-close" aria-label="Fechar conversa" title="Fechar conversa">×</button></div>
+        </header>
+        <div class="ai-chat-messages" role="log" aria-label="Conversa" aria-live="polite" aria-relevant="additions"></div>
+        <div class="ai-chat-bottom">
+          <form class="ai-chat-form">
+            <label class="sr-only" for="ai-chat-input">Sua mensagem</label>
+            <textarea id="ai-chat-input" rows="1" maxlength="1800" placeholder="Pergunte ao Assistente Núcleo" required></textarea>
+            <button type="submit" class="ai-chat-send" aria-label="Enviar mensagem" title="Enviar mensagem">↑</button>
+          </form>
+          <p>Orientação geral, não consulta jurídica. Evite enviar dados sensíveis. <a href="/politica-de-privacidade.html" target="_blank" rel="noopener">Privacidade</a></p>
+        </div>
+      </main>
     </div>`;
   document.body.append(dialog);
 
@@ -37,6 +44,15 @@
   const addMessage = (role, content, link = false) => {
     const row = document.createElement('div');
     row.className = `ai-chat-row ai-chat-row--${role}`;
+    if (role === 'assistant') {
+      const avatar = document.createElement('img');
+      avatar.className = 'ai-chat-message-avatar';
+      avatar.src = '/mauro-ai-avatar.png';
+      avatar.alt = '';
+      avatar.width = 44;
+      avatar.height = 44;
+      row.append(avatar);
+    }
     const bubble = document.createElement('div');
     bubble.className = 'ai-chat-bubble';
     const paragraph = document.createElement('p');
@@ -59,7 +75,10 @@
   const reset = () => {
     draft = '';
     messages.replaceChildren();
-    addMessage('assistant', 'Olá! Posso ajudar você a organizar os fatos e identificar quais informações levar ao primeiro atendimento. Conte, com suas palavras, o que aconteceu. Evite compartilhar dados pessoais sensíveis.');
+    const welcome = document.createElement('div');
+    welcome.className = 'ai-chat-welcome';
+    welcome.innerHTML = '<div class="ai-chat-avatar-stage"><img src="/mauro-ai-avatar.png" alt="Avatar do Assistente Núcleo" width="447" height="558"></div><span class="ai-chat-eyebrow">BEM-VINDO AO NÚCLEO</span><h2>Como podemos ajudar?</h2><p>Conte sua situação com suas palavras. Posso ajudar a organizar os fatos para o primeiro atendimento com a equipe.</p>';
+    messages.append(welcome);
     input.value = '';
     input.focus();
   };
@@ -97,12 +116,13 @@
   });
   dialog.addEventListener('close', () => triggers.forEach(trigger => trigger.setAttribute('aria-expanded', 'false')));
   dialog.querySelector('.ai-chat-close').addEventListener('click', () => dialog.close());
-  dialog.querySelector('.ai-chat-new').addEventListener('click', reset);
+  dialog.querySelectorAll('.ai-chat-new').forEach(button => button.addEventListener('click', reset));
   dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
   dialog.querySelector('.ai-chat-form').addEventListener('submit', event => {
     event.preventDefault();
     const text = input.value.trim();
     if (!text || send.disabled) return;
+    messages.querySelector('.ai-chat-welcome')?.remove();
     addMessage('user', text);
     draft = [draft, text].filter(Boolean).join('\n\n');
     input.value = '';
