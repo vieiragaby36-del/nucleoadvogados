@@ -2,13 +2,14 @@
 :root{--navy:#f6f8fa;--blue:#e9eff4;--blue2:#dce7ef;--surface:#fff;--text:#132a40;--muted:#3e576d;--line:#a7b8c6;--paper:#e9eff4;--paper-text:#14283d;--paper-muted:#40576b}
 html{color-scheme:light}
 .site-header{background:rgba(248,250,252,.97);border-color:#a8b9c8}
-.brand img{filter:brightness(0) saturate(100%)}
+.brand img{filter:none}
 .primary-nav a,.search-trigger{color:#132a40}
 .client-link{color:#62430f;border-color:#85601d}
 .client-link:hover{color:#fff;background:#654817}
 .language-control{color:#3b5267;border-color:#a7b8c6}
 .theme-toggle{color:#62430f;border-color:#85601d}
 .hero-lead,.hero-location{color:#3e576d}
+.hero h1{color:#fff}.hero-lead,.hero-location{color:#f1f5f8}.hero:after{background:linear-gradient(90deg,rgba(7,20,38,.95) 0%,rgba(7,20,38,.72) 50%,rgba(7,20,38,.18) 100%)}.hero .button-outline{color:#fff;border-color:#e2c27f}.hero .button-outline:hover{color:#14283d}
 .hero-image{border-color:#a7b8c6}
 .hero-image:after{background:linear-gradient(90deg,rgba(246,248,250,.35),transparent 35%),linear-gradient(0deg,rgba(7,20,38,.7),transparent 35%)}
 .hero-image .image-caption{color:#fff}
@@ -26,7 +27,7 @@ html{color-scheme:light}
 .contact-form{background:#fff;border-color:#a7b8c6}.contact-form legend,.contact-form label{color:#14283d}.contact-form input:not([type=radio]):not([type=checkbox]),.contact-form textarea,.search-hero input{background:#fff;color:#14283d;border-color:#7c92a4}.choice-list span{color:#14283d;border-color:#7c92a4}.choice-list input:checked+span{background:#a97625;color:#fff;border-color:#a97625}.privacy-check{color:#3e576d!important}.privacy-check a{color:#654817}.contact-status{color:#62430f}
 .client-panel .button-outline{color:#62430f}
 .site-footer{background:#e9eff4;color:#183048}.footer-identity p,.footer-column a,.footer-bottom{color:#30495e}.footer-identity span,.footer-column h2{color:#62430f}
-.site-footer .footer-identity img{filter:brightness(0)}
+.site-footer .footer-identity img{filter:none}
 .whatsapp-float{color:#fff}
 .breadcrumbs span:last-child,.detail-layout aside a{color:#62430f}.detail-layout p,.editorial-grid p:not(.eyebrow),.sector-page p,.editorial-empty p,.page-hero>p:last-child,.profile-hero p:not(.eyebrow),.search-results>p,.search-item p,.editorial-categories span{color:#3e576d}
 @media(max-width:900px){.primary-nav{background:#f6f8fa}.primary-nav a{border-color:#a7b8c6}.mobile-client-link{color:#62430f!important}.menu-toggle span:not(.sr-only){background:#62430f}}

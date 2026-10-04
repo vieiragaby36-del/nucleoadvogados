@@ -1,4 +1,4 @@
-const CACHE_NAME = "nucleo-public-v16";
+const CACHE_NAME = "nucleo-public-v17";
 const PUBLIC_FILES = [
   "/", "/index.html", "/styles-v15.css", "/theme-controls.css", "/light.css", "/site.js", "/translations.js", "/manifest.webmanifest",
   "/nucleo-logo.png", "/nucleo-logo-white.png", "/nucleo-logo-gold.png", "/nucleo-icon.png", "/nucleo-icon-white.png", "/nucleo-icon-192.png", "/favicon.png", "/office-building.webp", "/mauro-em-atividade.webp", "/sala-nucleo.webp",
