@@ -2,7 +2,7 @@
 :root{--navy:#f6f8fa;--blue:#e9eff4;--blue2:#dce7ef;--surface:#fff;--text:#132a40;--muted:#3e576d;--line:#a7b8c6;--paper:#e9eff4;--paper-text:#14283d;--paper-muted:#40576b}
 html{color-scheme:light}
 .site-header{background:rgba(248,250,252,.97);border-color:#a8b9c8}
-.brand img{filter:none}
+.brand img{filter:none;content:url('/nucleo-logo-gold-dark-text.png')}
 .primary-nav a,.search-trigger{color:#132a40}
 .client-link{color:#62430f;border-color:#85601d}
 .client-link:hover{color:#fff;background:#654817}
@@ -27,7 +27,7 @@ html{color-scheme:light}
 .contact-form{background:#fff;border-color:#a7b8c6}.contact-form legend,.contact-form label{color:#14283d}.contact-form input:not([type=radio]):not([type=checkbox]),.contact-form textarea,.search-hero input{background:#fff;color:#14283d;border-color:#7c92a4}.choice-list span{color:#14283d;border-color:#7c92a4}.choice-list input:checked+span{background:#a97625;color:#fff;border-color:#a97625}.privacy-check{color:#3e576d!important}.privacy-check a{color:#654817}.contact-status{color:#62430f}
 .client-panel .button-outline{color:#62430f}
 .site-footer{background:#e9eff4;color:#183048}.footer-identity p,.footer-column a,.footer-bottom{color:#30495e}.footer-identity span,.footer-column h2{color:#62430f}
-.site-footer .footer-identity img{filter:none}
+.site-footer .footer-identity img{filter:none;content:url('/nucleo-logo-gold-dark-text.png')}
 .whatsapp-float{color:#fff}
 .breadcrumbs span:last-child,.detail-layout aside a{color:#62430f}.detail-layout p,.editorial-grid p:not(.eyebrow),.sector-page p,.editorial-empty p,.page-hero>p:last-child,.profile-hero p:not(.eyebrow),.search-results>p,.search-item p,.editorial-categories span{color:#3e576d}
 @media(max-width:900px){.primary-nav{background:#f6f8fa}.primary-nav a{border-color:#a7b8c6}.mobile-client-link{color:#62430f!important}.menu-toggle span:not(.sr-only){background:#62430f}}
