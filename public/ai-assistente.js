@@ -7,6 +7,23 @@
   }
   const triggers = [...document.querySelectorAll('[data-ai-assistant]')];
   if (!triggers.length) return;
+  const practiceAreas = [
+    ['Trabalhista', 'Relações de trabalho, contratação, desligamento e conflitos entre empregados e empregadores.', 'Rescisão e verbas trabalhistas; salários e jornada; assédio no trabalho; acordos e defesa em ações.'],
+    ['Criminal', 'Orientação e defesa em investigações e processos criminais.', 'Inquéritos e intimações; defesa criminal; prisões e medidas cautelares; acompanhamento em delegacias.'],
+    ['Família e Sucessões', 'Questões familiares e organização da transmissão do patrimônio.', 'Divórcio e partilha; guarda e convivência; pensão alimentícia; inventário e planejamento sucessório.'],
+    ['Cível e Contencioso', 'Prevenção e resolução de conflitos entre pessoas e organizações.', 'Contratos; indenizações; cobranças; defesa e acompanhamento de processos.'],
+    ['Previdenciário', 'Questões relacionadas a benefícios e contribuições previdenciárias.', 'Aposentadorias; benefícios por incapacidade; pensão por morte; pedidos e recursos no INSS.'],
+    ['Empresarial e Societário', 'Apoio jurídico às decisões e às relações de uma empresa.', 'Contratos empresariais; constituição e reorganização de sociedades; acordos entre sócios; prevenção de conflitos.'],
+    ['Imobiliário', 'Questões jurídicas envolvendo imóveis e sua utilização.', 'Compra e venda; locações; questões condominiais; regularização e conflitos sobre imóveis.'],
+    ['Tributário', 'Análise de obrigações fiscais e de conflitos com o Fisco.', 'Tributos e cobranças; autuações fiscais; dívida ativa; planejamento e revisão de questões tributárias.'],
+    ['Consumidor', 'Conflitos nas relações entre consumidores e fornecedores.', 'Produtos e serviços; cobranças; negativação; problemas em compras e contratos de consumo.'],
+    ['Compliance e LGPD', 'Organização de práticas de integridade e proteção de dados pessoais.', 'Adequação à LGPD; políticas e contratos; incidentes com dados; programas de integridade.'],
+    ['Administrativo e Licitações', 'Relações com órgãos públicos e contratações administrativas.', 'Licitações; contratos administrativos; processos e sanções; orientação em relações com o poder público.'],
+    ['Internacional e Arbitragem', 'Questões jurídicas com elementos internacionais e resolução de disputas por arbitragem.', 'Contratos internacionais; operações transnacionais; cláusulas arbitrais; acompanhamento de disputas.'],
+    ['Saúde', 'Questões jurídicas relacionadas ao acesso e à prestação de serviços de saúde.', 'Planos de saúde; negativas de cobertura; contratos de serviços; análise de demandas assistenciais.'],
+    ['Outro assunto', 'Não encontrou o tema do seu caso? A equipe pode analisar sua demanda e indicar o encaminhamento adequado.', 'Conte o que aconteceu, quando ocorreu e se há algum prazo informado em documento.']
+  ];
+  let selectedArea = null;
 
   const icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-8 8H7l-3 2 1.1-4A8 8 0 1 1 20 11.5Z"/><path d="M8 11.5h8M8 14.5h5"/></svg>';
   const dialog = document.createElement('dialog');
@@ -17,6 +34,7 @@
       <aside class="ai-chat-sidebar" aria-label="Navegação do assistente">
         <div class="ai-chat-side-brand"><span class="ai-chat-symbol" aria-hidden="true">N</span><span>Núcleo Advogados</span></div>
         <button type="button" class="ai-chat-new ai-chat-side-new"><span aria-hidden="true">＋</span> Nova conversa</button>
+        <nav class="ai-chat-areas" aria-label="Áreas jurídicas"><p>EXPLORE POR ÁREA</p>${practiceAreas.map((area, i) => `<button type="button" data-practice-area="${i}" aria-pressed="false">${area[0]}<span aria-hidden="true">›</span></button>`).join('')}</nav>
         <div class="ai-chat-side-bottom"><span>Um primeiro passo para entender seu caso.</span><a href="/triagem.html">Falar com um advogado <span aria-hidden="true">↗</span></a></div>
       </aside>
       <main class="ai-chat-main">
@@ -24,6 +42,7 @@
           <div class="ai-chat-brand"><strong>Assistente Núcleo</strong><span>Orientação inicial automatizada</span></div>
           <div class="ai-chat-header-actions"><button type="button" class="ai-chat-new ai-chat-mobile-new" aria-label="Nova conversa" title="Nova conversa">＋</button><button type="button" class="ai-chat-close" aria-label="Fechar conversa" title="Fechar conversa">×</button></div>
         </header>
+        <div class="ai-chat-area-mobile"><label for="ai-practice-area">Área jurídica</label><select id="ai-practice-area"><option value="">Escolha uma área</option>${practiceAreas.map((area, i) => `<option value="${i}">${area[0]}</option>`).join('')}</select></div>
         <div class="ai-chat-messages" role="log" aria-label="Conversa" aria-live="polite" aria-relevant="additions"></div>
         <div class="ai-chat-bottom">
           <form class="ai-chat-form">
@@ -74,6 +93,9 @@
   };
   const reset = () => {
     draft = '';
+    selectedArea = null;
+    dialog.querySelectorAll('[data-practice-area]').forEach(button => button.setAttribute('aria-pressed', 'false'));
+    dialog.querySelector('#ai-practice-area').value = '';
     messages.replaceChildren();
     const welcome = document.createElement('div');
     welcome.className = 'ai-chat-welcome';
@@ -82,6 +104,43 @@
     input.value = '';
     input.focus();
   };
+  const openArea = (index) => {
+    const area = practiceAreas[index];
+    if (!area || send.disabled) return;
+    selectedArea = index;
+    dialog.querySelectorAll('[data-practice-area]').forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.practiceArea) === index)));
+    dialog.querySelector('#ai-practice-area').value = String(index);
+    messages.querySelector('.ai-chat-welcome')?.remove();
+    const card = document.createElement('section');
+    card.className = 'ai-chat-area-card';
+    const title = document.createElement('h2');
+    title.textContent = area[0];
+    const intro = document.createElement('p');
+    intro.textContent = area[1];
+    const list = document.createElement('ul');
+    area[2].split('; ').forEach(topic => {
+      const item = document.createElement('li');
+      item.textContent = topic;
+      list.append(item);
+    });
+    const prompt = document.createElement('p');
+    prompt.textContent = 'Conte sua situação no campo abaixo. A equipe confirmará o enquadramento e a possibilidade de atendimento.';
+    const link = document.createElement('a');
+    link.className = 'ai-chat-action';
+    link.href = '/triagem.html';
+    link.textContent = 'Iniciar atendimento nesta área →';
+    link.addEventListener('click', () => {
+      try { sessionStorage.setItem('nucleo-ai-draft', [area[0], draft].filter(Boolean).join('\n\n').slice(0, 6000)); } catch {}
+    });
+    card.append(title, intro, list, prompt, link);
+    messages.append(card);
+    messages.scrollTop = messages.scrollHeight;
+    input.focus({ preventScroll: true });
+  };
+  dialog.querySelectorAll('[data-practice-area]').forEach(button => button.addEventListener('click', () => openArea(Number(button.dataset.practiceArea))));
+  dialog.querySelector('#ai-practice-area').addEventListener('change', event => {
+    if (event.target.value !== '') openArea(Number(event.target.value));
+  });
   const respond = (text) => {
     const normalized = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     if (normalized.includes('trabalhista') || normalized.includes('trabalho')) {
