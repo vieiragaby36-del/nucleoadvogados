@@ -325,7 +325,7 @@ function renderDashboard() {
   const pending = state.tasks.filter((t) => !t.done);
   const cards = staff() ? [["Leads", leads.length + registrations.length, "Inclui cadastros iniciados", "leads"], ["Clientes", clients.length, "Clientes ativos", "clients"], ["Processos", state.cases.length, "Casos registrados", "cases"], ["Tarefas pendentes", pending.length, "Para acompanhar", "tasks"]] : [["Processos", state.cases.length, "Compartilhados com você", "cases"], ["Compromissos", pending.length, "Tarefas em aberto", "agenda"], ["Concluídos", state.tasks.filter((t) => t.done).length, "Compromissos finalizados", "tasks"], ["Atualizações", state.cases.length + state.tasks.length, "Itens disponíveis", "dashboard"]];
   const stages = ["novo", "em contato", "proposta enviada", "negociação"];
-  const main = staff() ? `<div class="pipeline">${stages.map((stage) => `<div class="pipeline-column"><h3>${stage}<span>${leads.filter((c) => c.stage === stage).length}</span></h3>${leads.filter((c) => c.stage === stage).slice(0, 4).map((c) => `<button class="pipeline-item" data-edit="contact" data-id="${c.id}"><strong>${esc(c.name)}</strong><small>${esc(c.source || "Sem origem")}</small></button>`).join("")}</div>`).join("")}</div>${registrations.length ? `<div class="intake-leads-head"><strong>Cadastros iniciados</strong><button type="button" class="row-action" data-view="requests">Ver todos</button></div>${registrations.slice(0, 4).map(intakeLeadRow).join("")}` : ""}` : recordList(state.cases, "Nenhum processo compartilhado ainda.", (c) => `<div><strong>${esc(c.title)}</strong><small>${esc(c.area || "Área não informada")}</small></div><span></span><span class="badge">${esc(c.status)}</span>`);
+  const main = staff() ? `<div class="pipeline" aria-label="Funil de oportunidades">${stages.map((stage) => `<div class="pipeline-column" data-pipeline-stage="${esc(stage)}" role="list"><h3>${stage}<span>${leads.filter((c) => c.stage === stage).length}</span></h3>${leads.filter((c) => c.stage === stage).slice(0, 8).map((c) => `<button type="button" class="pipeline-item" draggable="true" data-pipeline-card="${c.id}" data-edit="contact" data-id="${c.id}" role="listitem"><strong>${esc(c.name)}</strong><small>${esc(c.source || "Sem origem")}</small></button>`).join("")}${leads.filter((c) => c.stage === stage).length > 8 ? `<small class="pipeline-more">+ ${leads.filter((c) => c.stage === stage).length - 8} oportunidades</small>` : ""}</div>`).join("")}</div>${registrations.length ? `<div class="intake-leads-head"><strong>Cadastros iniciados</strong><button type="button" class="row-action" data-view="requests">Ver todos</button></div>${registrations.slice(0, 4).map(intakeLeadRow).join("")}` : ""}` : recordList(state.cases, "Nenhum processo compartilhado ainda.", (c) => `<div><strong>${esc(c.title)}</strong><small>${esc(c.area || "Área não informada")}</small></div><span></span><span class="badge">${esc(c.status)}</span>`);
   $("#workspace").innerHTML = `${staff() ? '<div class="dashboard-actions"><span>Seu espaço de trabalho</span><div><button type="button" class="secondary" data-view="attendances">Abrir atendimentos</button><button type="button" class="secondary" data-new="task">＋ Nova tarefa</button></div></div>' : ''}${staff() ? `<section class="attendance-queue"><div class="panel-head"><h2>Fila de atendimentos</h2><button type="button" class="row-action" data-view="attendances">Ver todos ↗</button></div><div>${attendanceQueue.map(([label,status]) => `<button type="button" data-view="attendances"><span>${label}</span><strong>${state.attendances.filter((item) => item.status === status).length}</strong></button>`).join("")}</div></section>` : ""}<div class="kpis">${cards.map(([label, value, note, view]) => `<button type="button" class="card" data-view="${view}" aria-label="${label}: ${value}. Abrir seção"><span>${label}</span><strong>${value}</strong><small>${note}</small><b aria-hidden="true">↗</b></button>`).join("")}</div><div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>${staff() ? "Funil de oportunidades" : "Seus processos"}</h2>${staff() ? '<button type="button" class="row-action" data-view="leads">Ver todos ↗</button>' : ''}</div>${main}</section><section class="panel"><div class="panel-head"><h2>Próximos compromissos</h2><button type="button" class="row-action" data-view="agenda">Ver agenda ↗</button></div>${recordList(pending.slice(0, 6), "Nenhum compromisso pendente.", (t) => `<div><strong>${esc(t.title)}</strong><small>${staff() ? esc(contactName(t.contact_id)) : "Compartilhado com você"}</small></div><span></span><span class="badge">${date(t.due_at)}</span>`)}</section></div>`;
 }
 
@@ -604,6 +604,51 @@ async function addAttendanceHistory(attendanceId, eventType, body, target) {
     showMessage("#portal-message", eventType === "Observação interna" ? "Observação registrada no histórico." : "Solicitação de documentos registrada no histórico.", "success");
   } catch { showMessage(target, "Não foi possível registrar este evento. Tente novamente.", "error"); }
 }
+
+async function movePipelineCard(cardId, stage) {
+  const card = state.contacts.find((item) => item.id === cardId);
+  if (!card || !staff() || card.stage === stage) return;
+  const previousStage = card.stage;
+  card.stage = stage;
+  render();
+  try {
+    const { error } = await supabase.from("contacts").update({ stage }).eq("id", cardId);
+    if (error) throw error;
+    showMessage("#portal-message", `Oportunidade movida para “${stage}”.`, "success");
+  } catch {
+    card.stage = previousStage;
+    render();
+    showMessage("#portal-message", "Não foi possível mover esta oportunidade.", "error");
+  }
+}
+
+document.addEventListener("dragstart", (event) => {
+  const card = event.target.closest("[data-pipeline-card]");
+  if (!card) return;
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData("text/plain", card.dataset.pipelineCard);
+  card.classList.add("is-dragging");
+});
+document.addEventListener("dragend", (event) => {
+  event.target.closest("[data-pipeline-card]")?.classList.remove("is-dragging");
+  document.querySelectorAll(".pipeline-column.is-over").forEach((column) => column.classList.remove("is-over"));
+});
+document.addEventListener("dragover", (event) => {
+  const column = event.target.closest("[data-pipeline-stage]");
+  if (!column) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "move";
+  document.querySelectorAll(".pipeline-column.is-over").forEach((item) => { if (item !== column) item.classList.remove("is-over"); });
+  column.classList.add("is-over");
+});
+document.addEventListener("drop", async (event) => {
+  const column = event.target.closest("[data-pipeline-stage]");
+  if (!column) return;
+  event.preventDefault();
+  const cardId = event.dataTransfer.getData("text/plain");
+  column.classList.remove("is-over");
+  await movePipelineCard(cardId, column.dataset.pipelineStage);
+});
 
 document.addEventListener("click", async (event) => {
   const attendanceOpen = event.target.closest("[data-attendance-open]")?.dataset.attendanceOpen;
