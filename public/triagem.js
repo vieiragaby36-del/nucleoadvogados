@@ -5,6 +5,8 @@ const submit = document.querySelector("#triage-submit");
 const description = document.querySelector("#triage-description");
 const descriptionCount = document.querySelector("#description-count");
 const submissionKeyName = "nucleo-triage-submission-key";
+const attendanceClaimName = "nucleo-attendance-claim";
+const claimTokenName = "nucleo-triage-claim-token";
 
 const showError = (name, value = "") => {
   const target = document.querySelector(`#error-${name}`);
@@ -22,10 +24,13 @@ const phoneMask = (value) => {
 };
 const valueOf = (name) => String(new FormData(form).get(name) || "").trim();
 function validate() {
-  const name = valueOf("name"), phone = valueOf("phone").replace(/\D/g, ""), city = valueOf("city"), area = valueOf("area"), cause = valueOf("description"), documents = valueOf("documents");
+  const name = valueOf("name"), phone = valueOf("phone").replace(/\D/g, ""), email = valueOf("email").toLowerCase(), password = valueOf("password"), passwordConfirm = valueOf("password_confirm"), city = valueOf("city"), area = valueOf("area"), cause = valueOf("description"), documents = valueOf("documents");
   const errors = {
     name: name.length < 2 ? "Informe como podemos chamar você." : "",
     phone: !/^\d{10,11}$/.test(phone) ? "Informe um WhatsApp válido com DDD." : "",
+    email: !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? "Informe um e-mail válido." : "",
+    password: password.length < 8 ? "Crie uma senha com pelo menos 8 caracteres." : "",
+    password_confirm: password !== passwordConfirm ? "As senhas não coincidem." : "",
     city: city.length < 2 ? "Informe sua cidade e UF." : "",
     area: !area ? "Selecione a área que melhor descreve sua demanda." : "",
     description: cause.length < 10 ? "Conte um pouco mais sobre o que aconteceu." : "",
@@ -39,7 +44,7 @@ function validate() {
 
 document.querySelector("#triage-phone").addEventListener("input", (event) => { event.target.value = phoneMask(event.target.value); showError("phone"); });
 description.addEventListener("input", () => { descriptionCount.textContent = `${description.value.length.toLocaleString("pt-BR")} / 6.000`; showError("description"); });
-form.addEventListener("input", (event) => { if (["name", "city"].includes(event.target.name)) showError(event.target.name); });
+form.addEventListener("input", (event) => { if (["name", "email", "password", "password_confirm", "city"].includes(event.target.name)) showError(event.target.name); });
 form.addEventListener("change", (event) => { if (["area", "documents"].includes(event.target.name)) showError(event.target.name); });
 
 form.addEventListener("submit", async (event) => {
@@ -52,20 +57,31 @@ form.addEventListener("submit", async (event) => {
   submit.querySelector("span").textContent = "Enviando informações…";
   try {
     const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/+esm");
-    const supabase = createClient(config.url, config.publishableKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const supabase = createClient(config.url, config.publishableKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
     let submissionKey = sessionStorage.getItem(submissionKeyName);
     if (!submissionKey) { submissionKey = crypto.randomUUID(); sessionStorage.setItem(submissionKeyName, submissionKey); }
+    let accountClaimToken = sessionStorage.getItem(claimTokenName);
+    if (!accountClaimToken) { accountClaimToken = crypto.randomUUID(); sessionStorage.setItem(claimTokenName, accountClaimToken); }
     const { data, error } = await supabase.rpc("submit_public_attendance", {
-      p_name: valueOf("name"), p_phone: valueOf("phone"), p_city_uf: valueOf("city"), p_demand_area: valueOf("area"), p_cause_description: valueOf("description"), p_has_documents: valueOf("documents"), p_submission_key: submissionKey
+      p_name: valueOf("name"), p_phone: valueOf("phone"), p_city_uf: valueOf("city"), p_demand_area: valueOf("area"), p_cause_description: valueOf("description"), p_has_documents: valueOf("documents"), p_email: valueOf("email").toLowerCase(), p_submission_key: submissionKey, p_account_claim_token: accountClaimToken
     });
     if (error) throw error;
     const attendance = Array.isArray(data) ? data[0] : data;
     if (!attendance?.attendance_number) throw new Error("Resposta inválida do atendimento.");
     sessionStorage.setItem("nucleo-triage-last-attendance", attendance.attendance_number);
+    sessionStorage.setItem(attendanceClaimName, JSON.stringify({ attendanceId: attendance.attendance_id, claimToken: accountClaimToken }));
+    const email = valueOf("email").toLowerCase();
+    let accessCopy = "Confirme o e-mail enviado para liberar seu acesso. Depois, entre para acompanhar seu processo, enviar documentos e conversar com nossa equipe.";
+    const signup = await supabase.auth.signUp({ email, password: valueOf("password"), options: { emailRedirectTo: new URL("/crm/", location.origin).toString(), data: { full_name: valueOf("name") } } });
+    if (signup.error) accessCopy = "Seu atendimento foi registrado. Para acompanhar seu processo, entre com seu e-mail no painel ou use “Esqueci a senha” caso já possua acesso.";
+    else if (!signup.data?.session) accessCopy = "Seu acesso está reservado. Confirme o e-mail enviado e, em seguida, entre para acompanhar seu processo.";
     document.querySelector("#attendance-number").textContent = `#${attendance.attendance_number}`;
+    document.querySelector("#access-next-copy").textContent = accessCopy;
+    document.querySelector("#portal-access-link").href = `/crm/?email=${encodeURIComponent(email)}`;
     document.querySelector("#triage-form-view").hidden = true;
     document.querySelector("#triage-success").hidden = false;
     sessionStorage.removeItem(submissionKeyName);
+    sessionStorage.removeItem(claimTokenName);
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (error) {
     console.error("Falha ao registrar triagem", error);

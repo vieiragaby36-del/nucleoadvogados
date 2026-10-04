@@ -38,6 +38,14 @@
     updateTheme();
   });
   const form = document.getElementById('contact-form');
+  if (form) {
+    const leadCopy = document.querySelector('.contact-lead > p:not(.eyebrow)');
+    if (leadCopy) leadCopy.textContent = 'Envie sua solicitação pelo atendimento inicial. Você receberá um protocolo e poderá acompanhar o andamento pelo painel.';
+    const triage = document.createElement('div');
+    triage.className = 'contact-form contact-triage';
+    triage.innerHTML = '<p class="eyebrow">ATENDIMENTO INICIAL</p><h3>Vamos entender o seu caso.</h3><p>Conte o que aconteceu, crie seu acesso e acompanhe seu atendimento com segurança.</p><a class="button button-gold" href="/triagem.html">Falar com um advogado <span aria-hidden="true">→</span></a><p class="contact-help">Seu atendimento recebe um número de protocolo assim que a solicitação é enviada.</p>';
+    form.replaceWith(triage);
+  }
   form?.addEventListener('submit', event => {
     event.preventDefault();
     if (!form.reportValidity()) return;

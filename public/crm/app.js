@@ -10,6 +10,7 @@ const esc = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&":
 const date = (value) => value ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${String(value).slice(0, 10)}T12:00:00Z`)) : "Sem data";
 const state = { session: null, profile: null, contacts: [], cases: [], tasks: [], team: [], lawyers: [], requestProfiles: [], requests: [], documents: [], assignments: [], attendances: [], attendanceHistory: [], attendanceDetail: null, view: "dashboard", search: "", editing: null, entity: null, signupDraft: null };
 let recoveryActive = /(?:^|[&#?])type=recovery(?:&|$)/.test(`${location.search}${location.hash}`);
+const portalPrefillEmail = new URLSearchParams(location.search).get("email")?.trim().toLowerCase() || "";
 const staff = () => ["owner", "staff"].includes(state.profile?.role);
 const authRedirectUrl = () => new URL("/crm/", location.origin).toString();
 
@@ -58,6 +59,7 @@ function setAuthMode(mode) {
   $("#auth-submit").textContent = content[2];
   $("#password-field").classList.toggle("hidden", mode === "reset");
   $("#auth-password").required = mode !== "reset";
+  if (portalPrefillEmail && !$("#auth-email").value) $("#auth-email").value = portalPrefillEmail;
   document.querySelectorAll("[data-auth-mode]").forEach((button) => button.classList.toggle("hidden", button.dataset.authMode === mode || (mode === "login" && button.dataset.authMode === "login")));
   showMessage("#auth-message");
 }
@@ -192,6 +194,16 @@ async function handleSession(session) {
 async function loadPortal() {
   try {
     const userId = state.session.user.id;
+    const pendingClaim = sessionStorage.getItem("nucleo-attendance-claim");
+    if (pendingClaim) {
+      try {
+        const claim = JSON.parse(pendingClaim);
+        if (claim?.attendanceId && claim?.claimToken) {
+          const { error: claimError } = await supabase.rpc("claim_attendance_access", { p_attendance_id: claim.attendanceId, p_account_claim_token: claim.claimToken });
+          if (!claimError) sessionStorage.removeItem("nucleo-attendance-claim");
+        }
+      } catch { sessionStorage.removeItem("nucleo-attendance-claim"); }
+    }
     const { data: profile, error } = await supabase.from("profiles").select("id,email,full_name,role,contact_id").eq("id", userId).single();
     if (error) throw error;
     state.profile = profile;
@@ -213,16 +225,16 @@ async function loadPortal() {
       }
     } else {
       const [contacts, cases, tasks, team, lawyers, requestProfiles, requests, documents, assignments, attendances, attendanceHistory] = await Promise.all([
-        staff() ? supabase.from("contacts").select("*").order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
+        staff() ? supabase.from("contacts").select("*").order("created_at", { ascending: false }) : profile.role === "client" && profile.contact_id ? supabase.from("contacts").select("*").eq("id", profile.contact_id) : Promise.resolve({ data: [] }),
         supabase.from("cases").select("*").order("updated_at", { ascending: false }),
         supabase.from("tasks").select("*").order("due_at", { ascending: true }),
         profile.role === "owner" ? supabase.from("team_invites").select("email,created_at").order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
-        profile.role === "owner" ? supabase.from("profiles").select("id,email,full_name,role").eq("role","staff") : Promise.resolve({ data: [] }),
+        staff() ? supabase.from("profiles").select("id,email,full_name,role,team_function,practice_area").in("role",["owner","staff"]) : Promise.resolve({ data: [] }),
         profile.role === "owner" ? supabase.from("profiles").select("id,email,full_name,role,contact_id") : Promise.resolve({ data: [] }),
         profile.role === "owner" ? supabase.from("client_requests").select("*").order("created_at", { ascending: false }) : supabase.from("client_requests").select("*").eq("user_id",userId),
         supabase.from("client_documents").select("*").order("created_at", { ascending: false }),
         staff() ? supabase.from("client_assignments").select("*") : Promise.resolve({ data: [] }),
-        staff() ? supabase.from("attendances").select("*").order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
+        staff() ? supabase.from("attendances").select("*").order("created_at", { ascending: false }) : profile.role === "client" && profile.contact_id ? supabase.from("attendances").select("*").eq("contact_id", profile.contact_id).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
         staff() ? supabase.from("attendance_history").select("*").order("created_at", { ascending: true }) : Promise.resolve({ data: [] })
       ]);
       const failed = [contacts, cases, tasks, team, lawyers, requestProfiles, requests, documents, assignments, attendances, attendanceHistory].find((result) => result.error);
@@ -234,6 +246,7 @@ async function loadPortal() {
     $("#portal").classList.remove("hidden");
     $("#account-email").textContent = profile.email;
     $("#quick-new").classList.toggle("hidden", !staff());
+    if (profile.role === "client" && state.view === "dashboard") state.view = "attendances";
     renderNav(); render();
   } catch (error) {
     console.error("[Núcleo Advogados] Falha ao carregar o portal", error);
@@ -259,7 +272,7 @@ function renderNav() {
   };
   const items = state.profile.role === "pending" ? [["intake", "✎", "Meu cadastro"], ["documents", "▤", "Documentos"]] : [
     ["dashboard", "▦", "Visão geral"],
-    ...(staff() ? [["attendances", "◷", "Atendimentos"], ["leads", "◇", "Leads"], ["clients", "◉", "Clientes"]] : [["intake", "✎", "Meu cadastro"]]),
+    ...(staff() ? [["attendances", "◷", "Atendimentos"], ["leads", "◇", "Leads"], ["clients", "◉", "Clientes"]] : state.profile.role === "client" ? [["attendances", "◷", "Meu atendimento"]] : [["intake", "✎", "Meu cadastro"]]),
     ["cases", "▣", "Processos"], ["tasks", "✓", "Tarefas"], ["agenda", "◷", "Agenda"],
     ["documents", "▤", "Documentos"],
     ...(state.profile.role === "owner" ? [["requests", "◷", "Cadastros recebidos"], ["team", "♙", "Equipe"]] : [])
@@ -305,20 +318,21 @@ const empty = (message) => `<p class="empty">${message}</p>`;
 
 function renderDashboard() {
   const leads = state.contacts.filter((c) => c.kind === "lead");
+  const attendanceQueue = [["Novos","Novo atendimento"],["Em triagem","Em triagem"],["Em análise","Em análise"],["Aguardando advogado","Aguardando validação do advogado"],["Aguardando cliente","Aguardando cliente"],["Concluídos","Concluído"]];
   const registrations = intakeLeads();
   const clients = state.contacts.filter((c) => c.kind === "client");
   const pending = state.tasks.filter((t) => !t.done);
   const cards = staff() ? [["Leads", leads.length + registrations.length, "Inclui cadastros iniciados", "leads"], ["Clientes", clients.length, "Clientes ativos", "clients"], ["Processos", state.cases.length, "Casos registrados", "cases"], ["Tarefas pendentes", pending.length, "Para acompanhar", "tasks"]] : [["Processos", state.cases.length, "Compartilhados com você", "cases"], ["Compromissos", pending.length, "Tarefas em aberto", "agenda"], ["Concluídos", state.tasks.filter((t) => t.done).length, "Compromissos finalizados", "tasks"], ["Atualizações", state.cases.length + state.tasks.length, "Itens disponíveis", "dashboard"]];
   const stages = ["novo", "em contato", "proposta enviada", "negociação"];
   const main = staff() ? `<div class="pipeline">${stages.map((stage) => `<div class="pipeline-column"><h3>${stage}<span>${leads.filter((c) => c.stage === stage).length}</span></h3>${leads.filter((c) => c.stage === stage).slice(0, 4).map((c) => `<button class="pipeline-item" data-edit="contact" data-id="${c.id}"><strong>${esc(c.name)}</strong><small>${esc(c.source || "Sem origem")}</small></button>`).join("")}</div>`).join("")}</div>${registrations.length ? `<div class="intake-leads-head"><strong>Cadastros iniciados</strong><button type="button" class="row-action" data-view="requests">Ver todos</button></div>${registrations.slice(0, 4).map(intakeLeadRow).join("")}` : ""}` : recordList(state.cases, "Nenhum processo compartilhado ainda.", (c) => `<div><strong>${esc(c.title)}</strong><small>${esc(c.area || "Área não informada")}</small></div><span></span><span class="badge">${esc(c.status)}</span>`);
-  $("#workspace").innerHTML = `${staff() ? '<div class="dashboard-actions"><span>Seu espaço de trabalho</span><div><button type="button" class="secondary" data-new="contact">＋ Novo lead</button><button type="button" class="secondary" data-new="task">＋ Nova tarefa</button></div></div>' : ''}<div class="kpis">${cards.map(([label, value, note, view]) => `<button type="button" class="card" data-view="${view}" aria-label="${label}: ${value}. Abrir seção"><span>${label}</span><strong>${value}</strong><small>${note}</small><b aria-hidden="true">↗</b></button>`).join("")}</div><div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>${staff() ? "Funil de oportunidades" : "Seus processos"}</h2>${staff() ? '<button type="button" class="row-action" data-view="leads">Ver todos ↗</button>' : ''}</div>${main}</section><section class="panel"><div class="panel-head"><h2>Próximos compromissos</h2><button type="button" class="row-action" data-view="agenda">Ver agenda ↗</button></div>${recordList(pending.slice(0, 6), "Nenhum compromisso pendente.", (t) => `<div><strong>${esc(t.title)}</strong><small>${staff() ? esc(contactName(t.contact_id)) : "Compartilhado com você"}</small></div><span></span><span class="badge">${date(t.due_at)}</span>`)}</section></div>`;
+  $("#workspace").innerHTML = `${staff() ? '<div class="dashboard-actions"><span>Seu espaço de trabalho</span><div><button type="button" class="secondary" data-view="attendances">Abrir atendimentos</button><button type="button" class="secondary" data-new="task">＋ Nova tarefa</button></div></div>' : ''}${staff() ? `<section class="attendance-queue"><div class="panel-head"><h2>Fila de atendimentos</h2><button type="button" class="row-action" data-view="attendances">Ver todos ↗</button></div><div>${attendanceQueue.map(([label,status]) => `<button type="button" data-view="attendances"><span>${label}</span><strong>${state.attendances.filter((item) => item.status === status).length}</strong></button>`).join("")}</div></section>` : ""}<div class="kpis">${cards.map(([label, value, note, view]) => `<button type="button" class="card" data-view="${view}" aria-label="${label}: ${value}. Abrir seção"><span>${label}</span><strong>${value}</strong><small>${note}</small><b aria-hidden="true">↗</b></button>`).join("")}</div><div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>${staff() ? "Funil de oportunidades" : "Seus processos"}</h2>${staff() ? '<button type="button" class="row-action" data-view="leads">Ver todos ↗</button>' : ''}</div>${main}</section><section class="panel"><div class="panel-head"><h2>Próximos compromissos</h2><button type="button" class="row-action" data-view="agenda">Ver agenda ↗</button></div>${recordList(pending.slice(0, 6), "Nenhum compromisso pendente.", (t) => `<div><strong>${esc(t.title)}</strong><small>${staff() ? esc(contactName(t.contact_id)) : "Compartilhado com você"}</small></div><span></span><span class="badge">${date(t.due_at)}</span>`)}</section></div>`;
 }
 
 function recordList(items, message, content, action = "") {
   return items.length ? `<div class="records">${items.map((item) => `<article class="record">${content(item)}${action ? `<button class="row-action" data-edit="${action}" data-id="${item.id}">Editar</button>` : ""}</article>`).join("")}</div>` : empty(message);
 }
 
-const attendanceStatuses = ["Novo atendimento", "Em análise", "Em atendimento", "Aguardando cliente", "Concluído", "Cancelado"];
+const attendanceStatuses = ["Novo atendimento", "Em triagem", "Em análise", "Aguardando validação do advogado", "Em atendimento", "Aguardando cliente", "Concluído", "Cancelado"];
 const dateTime = (value) => value ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value)) : "—";
 const staffName = (id) => state.lawyers.find((item) => item.id === id)?.full_name || state.lawyers.find((item) => item.id === id)?.email || "Não atribuído";
 const attendanceContact = (attendance) => state.contacts.find((contact) => contact.id === attendance.contact_id) || {};
@@ -332,18 +346,19 @@ function renderAttendances() {
   $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><h2>Painel de Atendimento</h2><span>${items.length} registros${newCount ? ` · ${newCount} novo(s)` : ""}</span></div>${rows}</section>`;
 }
 
+const teamOptionLabel = (person) => `${person.full_name || person.email} — ${person.team_function || "Equipe"}${person.practice_area ? ` · ${person.practice_area}` : ""}`;
+const teamSelectOptions = (selected, onlyLawyers = false) => `<option value="">Não atribuído</option>${state.lawyers.filter((person) => !onlyLawyers || person.team_function === "Advogado").map((person) => `<option value="${person.id}" ${selected === person.id ? "selected" : ""}>${esc(teamOptionLabel(person))}</option>`).join("")}`;
+function attendanceTeamControls(attendance) {
+  return `<section class="panel detail-panel management-panel"><div class="panel-head"><h3>Triagem e distribuição</h3><span>Defina quem conduz cada etapa</span></div><form id="attendance-management" class="management-form triage-management"><label>Status<select name="status">${attendanceStatuses.map((status) => `<option value="${status}" ${attendance.status === status ? "selected" : ""}>${status}</option>`).join("")}</select></label><label>Prioridade<select name="priority">${["Urgente","Prioridade normal","Baixa"].map((priority) => `<option value="${priority}" ${attendance.priority === priority ? "selected" : ""}>${priority === "Urgente" ? "🔴 Urgente" : priority === "Baixa" ? "🟢 Baixa" : "🟡 Prioridade normal"}</option>`).join("")}</select></label><label>Próxima ação<select name="next_action">${["","Solicitar documentos","Entrar em contato","Agendar reunião","Elaborar parecer","Encaminhar ao advogado","Encerrar demanda"].map((action) => `<option value="${action}" ${attendance.next_action === action ? "selected" : ""}>${action || "Definir depois"}</option>`).join("")}</select></label><label>Responsável pelo atendimento<select name="assigned_staff_id">${teamSelectOptions(attendance.assigned_staff_id)}</select></label><label>Responsável pela triagem<select name="triage_responsible_id">${teamSelectOptions(attendance.triage_responsible_id)}</select></label><label>Responsável pela análise<select name="analysis_responsible_id">${teamSelectOptions(attendance.analysis_responsible_id)}</select></label><label>Advogado responsável<select name="lawyer_responsible_id">${teamSelectOptions(attendance.lawyer_responsible_id, true)}</select></label><label class="management-wide">Anotações da triagem<textarea name="triage_notes" rows="4" maxlength="4000" placeholder="Urgência, conflito de interesses, documentos necessários e encaminhamento.">${esc(attendance.triage_notes || "")}</textarea></label><button class="primary" type="submit">Salvar triagem e distribuição</button><p id="attendance-management-message" class="message hidden" role="status"></p></form><form id="attendance-opinion" class="note-form"><label for="attendance-opinion-text">Parecer interno / análise preliminar</label><textarea id="attendance-opinion-text" name="body" maxlength="2000" rows="3" placeholder="Registre a análise preliminar para validação do advogado."></textarea><button class="secondary" type="submit">Registrar parecer</button><p id="attendance-opinion-message" class="message hidden" role="status"></p></form><div class="attendance-quick-actions"><button type="button" class="secondary" data-attendance-docs="${attendance.id}">Solicitar documentos</button></div></section>`;
+}
+
 function renderAttendanceDetail(attendance) {
   const contact = attendanceContact(attendance);
   const history = state.attendanceHistory.filter((item) => item.attendance_id === attendance.id);
   const whatsapp = `https://wa.me/55${String(contact.phone || "").replace(/\D/g, "")}`;
-  $("#workspace").innerHTML = `<section class="attendance-detail">
-    <div class="detail-top"><button type="button" class="row-action back-detail" data-attendance-back>← Todos os atendimentos</button>${attendanceBadge(attendance.status)}</div>
-    <div class="detail-title"><div><p class="eyebrow">${esc(attendance.attendance_number)}</p><h2>${esc(contact.name || "Cliente")}</h2><p>Recebido em ${dateTime(attendance.created_at)} · Origem: ${esc(attendance.source)}</p></div><a class="primary whatsapp-action" href="${whatsapp}" target="_blank" rel="noopener">WhatsApp ↗</a></div>
-    <div class="attendance-detail-grid"><section class="panel detail-panel"><div class="panel-head"><h3>Dados do cliente</h3></div><dl><div><dt>Nome</dt><dd>${esc(contact.name || "—")}</dd></div><div><dt>WhatsApp</dt><dd>${esc(contact.phone || "—")}</dd></div><div><dt>Cidade/UF</dt><dd>${esc(attendance.city_uf)}</dd></div></dl></section><section class="panel detail-panel"><div class="panel-head"><h3>Informações do atendimento</h3></div><dl><div><dt>ID do atendimento</dt><dd>${esc(attendance.attendance_number)}</dd></div><div><dt>Entrada</dt><dd>${dateTime(attendance.created_at)}</dd></div><div><dt>Origem</dt><dd>${esc(attendance.source)}</dd></div></dl></section></div>
-    <section class="panel detail-panel demand-panel"><div class="panel-head"><h3>Dados da demanda</h3></div><dl><div><dt>Área</dt><dd>${esc(attendance.demand_area)}</dd></div><div><dt>Possui documentos?</dt><dd>${esc(attendance.has_documents)}</dd></div><div><dt>Descrição completa</dt><dd class="cause-description">${esc(attendance.cause_description)}</dd></div></dl></section>
-    <section class="panel detail-panel management-panel"><div class="panel-head"><h3>Condução do atendimento</h3></div><form id="attendance-management" class="management-form"><label>Status<select name="status">${attendanceStatuses.map((status) => `<option value="${status}" ${attendance.status === status ? "selected" : ""}>${status}</option>`).join("")}</select></label><label>Advogado/responsável<select name="assigned_staff_id"><option value="">Não atribuído</option>${state.lawyers.map((person) => `<option value="${person.id}" ${attendance.assigned_staff_id === person.id ? "selected" : ""}>${esc(person.full_name || person.email)}</option>`).join("")}</select></label><button class="primary" type="submit">Salvar alterações</button><p id="attendance-management-message" class="message hidden" role="status"></p></form><div class="attendance-quick-actions"><button type="button" class="secondary" data-attendance-docs="${attendance.id}">Solicitar documentos</button><a class="secondary" href="${whatsapp}?text=${encodeURIComponent(`Olá, ${contact.name || ""}. Para dar continuidade ao atendimento ${attendance.attendance_number}, pedimos que envie os documentos relacionados ao caso pelo seu painel seguro.`)}" target="_blank" rel="noopener">Enviar mensagem</a></div></section>
-    <section class="panel detail-panel"><div class="panel-head"><h3>Histórico do atendimento</h3><span>${history.length} eventos</span></div><div class="history-list">${history.length ? history.map((item) => `<article><div><strong>${esc(item.event_type)}</strong><p>${esc(item.body)}</p></div><time>${dateTime(item.created_at)}</time></article>`).join("") : empty("Nenhum evento registrado.")}</div><form id="attendance-note" class="note-form"><label for="attendance-note-text">Adicionar observação interna</label><textarea id="attendance-note-text" name="body" maxlength="2000" rows="3" placeholder="Registre uma informação para a equipe."></textarea><button class="secondary" type="submit">Registrar observação</button><p id="attendance-note-message" class="message hidden" role="status"></p></form></section>
-  </section>`;
+  const teamControls = staff() ? `<section class="panel detail-panel management-panel"><div class="panel-head"><h3>Condução do atendimento</h3></div><form id="attendance-management" class="management-form"><label>Status<select name="status">${attendanceStatuses.map((status) => `<option value="${status}" ${attendance.status === status ? "selected" : ""}>${status}</option>`).join("")}</select></label><label>Advogado/responsável<select name="assigned_staff_id"><option value="">Não atribuído</option>${state.lawyers.map((person) => `<option value="${person.id}" ${attendance.assigned_staff_id === person.id ? "selected" : ""}>${esc(person.full_name || person.email)}</option>`).join("")}</select></label><button class="primary" type="submit">Salvar alterações</button><p id="attendance-management-message" class="message hidden" role="status"></p></form><div class="attendance-quick-actions"><button type="button" class="secondary" data-attendance-docs="${attendance.id}">Solicitar documentos</button><a class="secondary" href="${whatsapp}?text=${encodeURIComponent(`Olá, ${contact.name || ""}. Para dar continuidade ao atendimento ${attendance.attendance_number}, pedimos que envie os documentos relacionados ao caso pelo seu painel seguro.`)}" target="_blank" rel="noopener">Enviar mensagem</a></div></section><section class="panel detail-panel"><div class="panel-head"><h3>Histórico do atendimento</h3><span>${history.length} eventos</span></div><div class="history-list">${history.length ? history.map((item) => `<article><div><strong>${esc(item.event_type)}</strong><p>${esc(item.body)}</p></div><time>${dateTime(item.created_at)}</time></article>`).join("") : empty("Nenhum evento registrado.")}</div><form id="attendance-note" class="note-form"><label for="attendance-note-text">Adicionar observação interna</label><textarea id="attendance-note-text" name="body" maxlength="2000" rows="3" placeholder="Registre uma informação para a equipe."></textarea><button class="secondary" type="submit">Registrar observação</button><p id="attendance-note-message" class="message hidden" role="status"></p></form></section>` : `<section class="panel detail-panel client-progress"><div class="panel-head"><h3>Acompanhamento</h3></div><p>Este é o status atual do seu atendimento. A equipe entrará em contato pelo WhatsApp sempre que precisar de novas informações ou documentos.</p><a class="secondary" href="${whatsapp}" target="_blank" rel="noopener">Falar com a equipe pelo WhatsApp</a></section>`;
+  $("#workspace").innerHTML = `<section class="attendance-detail"><div class="detail-top"><button type="button" class="row-action back-detail" data-attendance-back>← ${staff() ? "Todos os atendimentos" : "Meu atendimento"}</button>${attendanceBadge(attendance.status)}</div><div class="detail-title"><div><p class="eyebrow">${esc(attendance.attendance_number)}</p><h2>${esc(contact.name || "Cliente")}</h2><p>Recebido em ${dateTime(attendance.created_at)} · Origem: ${esc(attendance.source)}</p></div>${staff() ? `<a class="primary whatsapp-action" href="${whatsapp}" target="_blank" rel="noopener">WhatsApp ↗</a>` : ""}</div><div class="attendance-detail-grid"><section class="panel detail-panel"><div class="panel-head"><h3>Dados do cliente</h3></div><dl><div><dt>Nome</dt><dd>${esc(contact.name || "—")}</dd></div><div><dt>WhatsApp</dt><dd>${esc(contact.phone || "—")}</dd></div><div><dt>Cidade/UF</dt><dd>${esc(attendance.city_uf)}</dd></div></dl></section><section class="panel detail-panel"><div class="panel-head"><h3>Informações do atendimento</h3></div><dl><div><dt>ID do atendimento</dt><dd>${esc(attendance.attendance_number)}</dd></div><div><dt>Entrada</dt><dd>${dateTime(attendance.created_at)}</dd></div><div><dt>Origem</dt><dd>${esc(attendance.source)}</dd></div></dl></section></div><section class="panel detail-panel demand-panel"><div class="panel-head"><h3>Dados da demanda</h3></div><dl><div><dt>Área</dt><dd>${esc(attendance.demand_area)}</dd></div><div><dt>Possui documentos?</dt><dd>${esc(attendance.has_documents)}</dd></div><div><dt>Descrição completa</dt><dd class="cause-description">${esc(attendance.cause_description)}</dd></div></dl></section>${teamControls}</section>`;
+  if (staff()) document.querySelector(".management-panel")?.replaceWith(document.createRange().createContextualFragment(attendanceTeamControls(attendance)));
 }
 
 function renderContacts(kind) {
@@ -364,7 +379,24 @@ function renderTasks(agenda) {
 }
 
 function renderTeam() {
-  $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><h2>Acesso da equipe</h2><span>${state.team.length} integrantes</span></div>${recordList(state.team, "Nenhum integrante cadastrado.", (item) => `<div><strong>${esc(item.email)}</strong><small>Permissão de equipe</small></div><span></span><span class="badge">Ativo</span>`)}</section>`;
+  const members = state.lawyers;
+  $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><div><h2>Equipe e distribuição</h2><p>Defina a função e a área de cada pessoa para a distribuição correta dos atendimentos.</p></div><span>${members.length} membros ativos</span></div>${members.length ? `<div class="team-workflow-list">${members.map((member) => `<form class="team-profile-form" data-team-profile="${member.id}"><div class="team-profile-identity"><strong>${esc(member.full_name || member.email)}</strong><small>${esc(member.email || "")}</small></div><label>Função<select name="team_function"><option value="Advogado" ${member.team_function === "Advogado" ? "selected" : ""}>Advogado</option><option value="Estagiário" ${member.team_function === "Estagiário" ? "selected" : ""}>Estagiário</option><option value="Auxiliar" ${member.team_function === "Auxiliar" ? "selected" : ""}>Auxiliar</option></select></label><label>Área<input name="practice_area" maxlength="120" placeholder="Ex.: Trabalhista" value="${esc(member.practice_area || "")}"></label><button class="secondary" type="submit">Salvar</button><p class="message hidden" role="status"></p></form>`).join("")}</div>` : empty("Nenhum integrante ativo. Convide uma pessoa para a equipe e ela aparecerá aqui após criar o acesso.")}<div class="team-invites"><h3>Convites ativos</h3>${recordList(state.team, "Nenhum convite ou integrante adicional.", (item) => `<div><strong>${esc(item.email)}</strong><small>Permissão de equipe</small></div><span></span><span class="badge">Ativo</span>`)}</div></section>`;
+}
+
+async function saveTeamProfile(form) {
+  const message = form.querySelector(".message");
+  const values = new FormData(form);
+  const payload = { team_function: values.get("team_function"), practice_area: String(values.get("practice_area") || "").trim() };
+  const button = form.querySelector("button[type=submit]");
+  button.disabled = true;
+  try {
+    const { error } = await supabase.from("profiles").update(payload).eq("id", form.dataset.teamProfile);
+    if (error) throw error;
+    message.textContent = "Função atualizada."; message.className = "message success";
+    await loadPortal();
+  } catch (error) {
+    message.textContent = friendlyError(error); message.className = "message error";
+  } finally { button.disabled = false; }
 }
 
 function renderIntake() {
@@ -524,7 +556,7 @@ async function saveAttendanceManagement(form) {
   if (!attendance) return;
   const button = form.querySelector('button[type="submit"]'); button.disabled = true;
   const values = Object.fromEntries(new FormData(form));
-  const payload = { status: values.status, assigned_staff_id: values.assigned_staff_id || null };
+  const payload = { status: values.status, priority: values.priority, next_action: values.next_action, triage_notes: String(values.triage_notes || "").trim(), assigned_staff_id: values.assigned_staff_id || null, triage_responsible_id: values.triage_responsible_id || null, analysis_responsible_id: values.analysis_responsible_id || null, lawyer_responsible_id: values.lawyer_responsible_id || null };
   try {
     const { error } = await supabase.from("attendances").update(payload).eq("id", attendance.id);
     if (error) throw error;
@@ -587,6 +619,8 @@ document.addEventListener("submit", async (event) => {
   if (event.target.id === "document-form") { event.preventDefault(); await uploadDocument(event.target); }
   if (event.target.id === "attendance-management") { event.preventDefault(); await saveAttendanceManagement(event.target); }
   if (event.target.id === "attendance-note") { event.preventDefault(); const body = String(new FormData(event.target).get("body") || "").trim(); if (!body) return showMessage("#attendance-note-message", "Escreva uma observação antes de registrar.", "error"); await addAttendanceHistory(state.attendanceDetail?.id, "Observação interna", body, "#attendance-note-message"); }
+  if (event.target.id === "attendance-opinion") { event.preventDefault(); const body = String(new FormData(event.target).get("body") || "").trim(); if (!body) return showMessage("#attendance-opinion-message", "Escreva o parecer antes de registrar.", "error"); await addAttendanceHistory(state.attendanceDetail?.id, "Parecer interno", body, "#attendance-opinion-message"); }
+  if (event.target.matches(".team-profile-form")) { event.preventDefault(); await saveTeamProfile(event.target); }
 });
 
 document.querySelectorAll("[data-auth-mode]").forEach((button) => button.addEventListener("click", () => setAuthMode(button.dataset.authMode)));
