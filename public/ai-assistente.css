@@ -12,3 +12,34 @@
 @media(max-width:560px){.hero-actions .ai-assistant-trigger{right:82px;bottom:84px;width:54px;height:54px}}
 @media(max-height:650px){.ai-chat-welcome{min-height:240px}.ai-chat-avatar-stage{width:105px;height:120px;margin-bottom:12px}}
 @media(prefers-reduced-motion:reduce){.ai-assistant-trigger{transition:none}.ai-chat-avatar-stage img{animation:none}}
+/* A área de conversa permanece clara independentemente do tema do site. */
+.ai-chat{background:#f8f7f4;color:#182d3e}
+.ai-chat-sidebar{background:#edf0f0;border-right-color:#d9dedf}
+.ai-chat-side-brand{color:#172d3d}
+.ai-chat-side-new{background:#fff;border-color:#ccd4d7;color:#20394b}
+.ai-chat-side-new:hover{background:#f7f4ed}
+.ai-chat-side-bottom{border-top-color:#d3dadd;color:#526778}
+.ai-chat-side-bottom a{color:#795624}
+.ai-chat-main{background:radial-gradient(circle at 52% 38%,#fff 0%,#f8f7f4 65%,#f3f2ee 100%)}
+.ai-chat-header{border-bottom-color:#e2e4e3}
+.ai-chat-brand strong,.ai-chat-welcome h2{color:#172c3c}
+.ai-chat-brand span{color:#5b6d78}
+.ai-chat-header button{border-color:#cbd3d7;color:#344d60}
+.ai-chat-header button:hover{background:#ebeef0}
+.ai-chat-messages{scrollbar-color:#bcc7cb transparent}
+.ai-chat-avatar-stage:before{background:rgba(180,141,74,.26)}
+.ai-chat-eyebrow{color:#866632}
+.ai-chat-welcome p,.ai-chat-bubble{color:#405667}
+.ai-chat-message-avatar{background:#e5e7e5;border-color:#c4a367}
+.ai-chat-row--user .ai-chat-bubble{background:#e9eef0;border-color:#d6e0e4;color:#233a4b}
+.ai-chat-action{border-color:#aa8750;color:#6f4e1d}
+.ai-chat-action:hover{background:#f4efe4;color:#283e4d}
+.ai-chat-bottom{background:linear-gradient(transparent,#f8f7f4 18%)}
+.ai-chat-form{border-color:#cad2d5;background:#fff;box-shadow:0 12px 35px rgba(30,50,60,.1)}
+.ai-chat-form:focus-within{border-color:#a7844c;box-shadow:0 0 0 2px rgba(178,139,71,.14),0 12px 35px rgba(30,50,60,.1)}
+.ai-chat-form textarea{color:#172d3e}
+.ai-chat-form textarea::placeholder{color:#697d89}
+.ai-chat-send{background:#bd9555;color:#fff}
+.ai-chat-send:hover{background:#a77e3f}
+.ai-chat-bottom>p{color:#647783}
+.ai-chat-bottom a{color:#775524}
