@@ -48,7 +48,7 @@ def head(title, description, path, *, image="/mauro-em-atividade.webp", extra_sc
         '<link rel="preconnect" href="https://fonts.googleapis.com">',
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
         '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">',
-        '<link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/theme-controls.css">',
+        '<link rel="stylesheet" href="/styles-v12.css"><link rel="stylesheet" href="/theme-controls.css">',
         '<link rel="stylesheet" href="/light.css" id="light-theme" disabled>',
         '<script>try{if(localStorage.getItem("nucleo-theme")==="light")document.getElementById("light-theme").disabled=false}catch(e){}</script>',
     ]

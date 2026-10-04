@@ -1,6 +1,6 @@
-const CACHE_NAME = "nucleo-public-v12";
+const CACHE_NAME = "nucleo-public-v13";
 const PUBLIC_FILES = [
-  "/", "/index.html", "/styles.css", "/theme-controls.css", "/light.css", "/site.js", "/translations.js", "/manifest.webmanifest",
+  "/", "/index.html", "/styles-v12.css", "/theme-controls.css", "/light.css", "/site.js", "/translations.js", "/manifest.webmanifest",
   "/nucleo-logo.png", "/nucleo-logo-white.png", "/nucleo-icon.png", "/nucleo-icon-white.png", "/nucleo-icon-192.png", "/favicon.png", "/mauro-em-atividade.webp", "/sala-nucleo.webp",
   "/escritorio.html", "/setores.html",
   "/atuacao/empresarial-e-societario.html", "/atuacao/tributario-e-administrativo.html", "/atuacao/contencioso-estrategico.html", "/atuacao/familia-e-patrimonio.html", "/atuacao/compliance-e-lgpd.html", "/atuacao/internacional-e-arbitragem.html",
