@@ -84,6 +84,9 @@
   };
   const respond = (text) => {
     const normalized = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    if (normalized.includes('trabalhista') || normalized.includes('trabalho')) {
+      return 'Pelo que você descreveu, a demanda pode estar relacionada a Direito Trabalhista. Organize contrato de trabalho, holerites, registro de ponto, mensagens e documentos de rescisão. Como você mencionou audiência ou prazo, informe a data exata à equipe e procure atendimento humano imediatamente. Esta é uma orientação geral e não substitui a análise individual de um advogado.';
+    }
     const areas = [
       { pattern: /trabalh|demiss|salario|ferias|fgts|rescis|justa causa|horas extras|assedi/, name: 'Trabalhista', documents: 'contrato de trabalho, holerites, registro de ponto, mensagens e documentos de rescisão', next: 'Confira as datas de admissão, afastamento ou desligamento e não assine um documento sem entendê-lo.' },
       { pattern: /divorc|guarda|pensao|heran|inventario|familia|uniao estavel|partilha/, name: 'Família e Sucessões', documents: 'certidões, comprovantes, acordos e registros das conversas relevantes', next: 'Separe as datas importantes, a situação atual dos envolvidos e o que você pretende alcançar.' },
