@@ -13,7 +13,6 @@
     <link rel="stylesheet" href="/triagem.css">
     <link rel="stylesheet" href="/triagem-access.css">
     <link rel="stylesheet" href="/ai-assistente.css">
-    <link rel="stylesheet" href="/ai-avatar-overrides.css">
   </head>
   <body>
     <main class="intake-shell">
@@ -32,7 +31,7 @@
           <div id="triage-form-view">
             <p class="eyebrow">PRIMEIRO CONTATO</p>
             <h2 id="triage-title">Vamos entender o seu caso</h2>
-            <p class="intro">Conte brevemente o que aconteceu. Essas informações nos ajudam a entender sua demanda e direcionar seu atendimento.</p><button class="ai-assistant-trigger" type="button" data-ai-assistant aria-label="Abrir orientação inicial por IA"><img class="ai-trigger-avatar" src="/mauro-ai-avatar.png" alt=""><span>Precisa organizar sua dúvida? Converse com a IA</span></button>
+            <p class="intro">Conte brevemente o que aconteceu. Essas informações nos ajudam a entender sua demanda e direcionar seu atendimento.</p><button class="ai-assistant-trigger" type="button" data-ai-assistant aria-label="Abrir assistente de orientação"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-8 8H7l-3 2 1.1-4A8 8 0 1 1 20 11.5Z"/><path d="M8 11.5h8M8 14.5h5"/></svg></button>
             <form id="triage-form" novalidate>
               <div class="field"><label for="triage-name">Seu nome</label><input id="triage-name" name="name" autocomplete="name" placeholder="Como podemos chamar você?" maxlength="160" required><p class="field-error" id="error-name"></p></div>
               <div class="field"><label for="triage-phone">WhatsApp</label><input id="triage-phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="(11) 99999-9999" maxlength="15" required><p class="field-error" id="error-phone"></p></div>
