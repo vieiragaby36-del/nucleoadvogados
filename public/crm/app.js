@@ -11,7 +11,8 @@ const date = (value) => value ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit
 const state = { session: null, profile: null, contacts: [], cases: [], tasks: [], team: [], lawyers: [], requestProfiles: [], requests: [], documents: [], assignments: [], attendances: [], attendanceHistory: [], attendanceDetail: null, view: "dashboard", search: "", editing: null, entity: null, signupDraft: null };
 let recoveryActive = /(?:^|[&#?])type=recovery(?:&|$)/.test(`${location.search}${location.hash}`);
 const portalPrefillEmail = new URLSearchParams(location.search).get("email")?.trim().toLowerCase() || "";
-const staff = () => ["owner", "staff"].includes(state.profile?.role);
+const admin = () => ["owner", "super_admin"].includes(state.profile?.role);
+const staff = () => ["owner", "super_admin", "staff"].includes(state.profile?.role);
 const authRedirectUrl = () => new URL("/crm/", location.origin).toString();
 
 function showMessage(target, message = "", type = "") {
@@ -228,10 +229,10 @@ async function loadPortal() {
         staff() ? supabase.from("contacts").select("*").order("created_at", { ascending: false }) : profile.role === "client" && profile.contact_id ? supabase.from("contacts").select("*").eq("id", profile.contact_id) : Promise.resolve({ data: [] }),
         supabase.from("cases").select("*").order("updated_at", { ascending: false }),
         supabase.from("tasks").select("*").order("due_at", { ascending: true }),
-        profile.role === "owner" ? supabase.from("team_invites").select("email,created_at").order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
-        staff() ? supabase.from("profiles").select("id,email,full_name,role,team_function,practice_area").in("role",["owner","staff"]) : Promise.resolve({ data: [] }),
-        profile.role === "owner" ? supabase.from("profiles").select("id,email,full_name,role,contact_id") : Promise.resolve({ data: [] }),
-        profile.role === "owner" ? supabase.from("client_requests").select("*").order("created_at", { ascending: false }) : supabase.from("client_requests").select("*").eq("user_id",userId),
+        admin() ? supabase.from("team_invites").select("email,created_at,team_function,requested_role").order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
+        staff() ? supabase.from("profiles").select("id,email,full_name,role,team_function,practice_area").in("role",["owner","super_admin","staff"]) : Promise.resolve({ data: [] }),
+        admin() ? supabase.from("profiles").select("id,email,full_name,role,contact_id,team_function,practice_area") : Promise.resolve({ data: [] }),
+        admin() ? supabase.from("client_requests").select("*").order("created_at", { ascending: false }) : supabase.from("client_requests").select("*").eq("user_id",userId),
         supabase.from("client_documents").select("*").order("created_at", { ascending: false }),
         staff() ? supabase.from("client_assignments").select("*") : Promise.resolve({ data: [] }),
         staff() ? supabase.from("attendances").select("*").order("created_at", { ascending: false }) : profile.role === "client" && profile.contact_id ? supabase.from("attendances").select("*").eq("contact_id", profile.contact_id).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
@@ -275,7 +276,7 @@ function renderNav() {
     ...(staff() ? [["attendances", "◷", "Atendimentos"], ["leads", "◇", "Leads"], ["clients", "◉", "Clientes"]] : state.profile.role === "client" ? [["attendances", "◷", "Meu atendimento"]] : [["intake", "✎", "Meu cadastro"]]),
     ["cases", "▣", "Processos"], ["tasks", "✓", "Tarefas"], ["agenda", "◷", "Agenda"],
     ["documents", "▤", "Documentos"],
-    ...(state.profile.role === "owner" ? [["requests", "◷", "Cadastros recebidos"], ["team", "♙", "Equipe"]] : [])
+    ...(admin() ? [["requests", "◷", "Cadastros recebidos"], ["team", "♙", "Equipe"]] : [])
   ];
   $("#nav").innerHTML = items.map(([id, , label]) => `<button type="button" data-view="${id}" class="${state.view === id ? "active" : ""}" ${state.view === id ? 'aria-current="page"' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[id]}</svg><span>${label}</span></button>`).join("");
   $("#side-caption").textContent = staff() ? "GESTÃO DO ESCRITÓRIO" : "ÁREA DO CLIENTE";
@@ -303,12 +304,12 @@ function renderHead() {
   const titles = { dashboard: staff() ? "Visão geral" : "Seu atendimento", attendances: "Atendimentos", leads: "Leads", clients: "Clientes", intake: "Meu cadastro", documents: "Documentos", requests: "Cadastros recebidos", cases: "Processos", tasks: "Tarefas", agenda: "Agenda", team: "Equipe" };
   const descriptions = { dashboard: staff() ? "Acompanhe os registros do escritório em um só lugar." : "Acompanhe as informações compartilhadas pela equipe.", attendances: "Triagens recebidas pelo site e seus próximos passos.", leads: "Organize oportunidades e próximos contatos.", clients: "Consulte as pessoas atendidas pelo escritório.", intake: "Seus dados enviados ao escritório.", documents: "Arquivos protegidos do atendimento.", requests: "Analise os pedidos antes de vincular clientes.", cases: "Acompanhe casos e processos jurídicos.", tasks: "Controle atividades e compromissos.", agenda: "Veja os compromissos em ordem de data.", team: "Gerencie quem acessa o painel do escritório." };
   const entities = { leads: ["contact", "Novo lead"], clients: ["contact", "Novo cliente"], cases: ["case", "Novo processo"], tasks: ["task", "Nova tarefa"], team: ["staff", "Adicionar integrante"] };
-  const action = staff() && (state.profile.role === "owner" || state.view !== "clients") && entities[state.view] ? `<button class="primary" data-new="${entities[state.view][0]}">＋ ${entities[state.view][1]}</button>` : "";
+  const action = staff() && (admin() || state.view !== "clients") && entities[state.view] ? `<button class="primary" data-new="${entities[state.view][0]}">＋ ${entities[state.view][1]}</button>` : "";
   $("#page-head").innerHTML = `<div><p class="eyebrow">${staff() ? "NÚCLEO ADVOGADOS · CRM" : "ÁREA DO CLIENTE"}</p><h1>${titles[state.view]}</h1><p>${descriptions[state.view]}</p></div>${action}`;
 }
 
 const contactName = (id) => state.contacts.find((item) => item.id === id)?.name || "Cliente";
-const intakeLeads = () => state.profile.role === "owner" ? state.requestProfiles.filter((profile) => profile.role === "pending" && !state.contacts.some((contact) => contact.email?.toLowerCase() === profile.email?.toLowerCase())) : [];
+const intakeLeads = () => admin() ? state.requestProfiles.filter((profile) => profile.role === "pending" && !state.contacts.some((contact) => contact.email?.toLowerCase() === profile.email?.toLowerCase())) : [];
 const intakeLeadRow = (profile) => {
   const request = state.requests.find((item) => item.user_id === profile.id);
   return `<article class="intake-lead"><div><strong>${esc(profile.full_name || profile.email)}</strong><small>${esc(profile.email)} · ${request ? "Formulário enviado" : "Aguardando formulário"}</small></div><span class="badge">${request ? esc(request.status) : "Cadastro iniciado"}</span></article>`;
@@ -329,7 +330,8 @@ function renderDashboard() {
 }
 
 function recordList(items, message, content, action = "") {
-  return items.length ? `<div class="records">${items.map((item) => `<article class="record">${content(item)}${action ? `<button class="row-action" data-edit="${action}" data-id="${item.id}">Editar</button>` : ""}</article>`).join("")}</div>` : empty(message);
+  const tableByAction = { contact: "contacts", case: "cases", task: "tasks" };
+  return items.length ? `<div class="records">${items.map((item) => `<article class="record">${content(item)}${action ? `<div class="row-actions"><button class="row-action" data-edit="${action}" data-id="${item.id}">Editar</button>${admin() && tableByAction[action] ? `<button class="row-action danger" data-record-delete="${tableByAction[action]}" data-id="${item.id}">Excluir</button>` : ""}</div>` : ""}</article>`).join("")}</div>` : empty(message);
 }
 
 const attendanceStatuses = ["Novo atendimento", "Em triagem", "Em análise", "Aguardando validação do advogado", "Em atendimento", "Aguardando cliente", "Concluído", "Cancelado"];
@@ -341,7 +343,7 @@ const attendanceBadge = (status) => `<span class="badge attendance-status ${stat
 function renderAttendances() {
   if (state.attendanceDetail) return renderAttendanceDetail(state.attendanceDetail);
   const items = filtered(state.attendances, [(a) => attendanceContact(a).name, (a) => attendanceContact(a).phone, (a) => a.city_uf, (a) => a.demand_area, (a) => a.attendance_number, (a) => a.status]);
-  const rows = items.length ? `<div class="attendance-table"><div class="attendance-row attendance-heading"><span>Cliente</span><span>Área</span><span>Cidade</span><span>WhatsApp</span><span>Data</span><span>Status</span><span>Ações</span></div>${items.map((attendance) => { const contact = attendanceContact(attendance); return `<article class="attendance-row"><div><strong>${esc(contact.name || "Cliente")}</strong><small>${esc(attendance.attendance_number)}</small></div><span>${esc(attendance.demand_area)}</span><span>${esc(attendance.city_uf)}</span><a class="phone-link" href="https://wa.me/55${String(contact.phone || "").replace(/\D/g, "")}" target="_blank" rel="noopener">${esc(contact.phone || "—")}</a><span>${date(attendance.created_at)}</span>${attendanceBadge(attendance.status)}<button type="button" class="row-action" data-attendance-open="${attendance.id}">Abrir</button></article>`; }).join("")}</div>` : empty("Nenhum atendimento recebido ainda.");
+  const rows = items.length ? `<div class="attendance-table"><div class="attendance-row attendance-heading"><span>Cliente</span><span>Área</span><span>Cidade</span><span>WhatsApp</span><span>Data</span><span>Status</span><span>Ações</span></div>${items.map((attendance) => { const contact = attendanceContact(attendance); return `<article class="attendance-row"><div><strong>${esc(contact.name || "Cliente")}</strong><small>${esc(attendance.attendance_number)}</small></div><span>${esc(attendance.demand_area)}</span><span>${esc(attendance.city_uf)}</span><a class="phone-link" href="https://wa.me/55${String(contact.phone || "").replace(/\D/g, "")}" target="_blank" rel="noopener">${esc(contact.phone || "—")}</a><span>${date(attendance.created_at)}</span>${attendanceBadge(attendance.status)}<div class="row-actions"><button type="button" class="row-action" data-attendance-open="${attendance.id}">Abrir</button>${admin() ? `<button type="button" class="row-action danger" data-attendance-delete="${attendance.id}">Excluir</button>` : ""}</div></article>`; }).join("")}</div>` : empty("Nenhum atendimento recebido ainda.");
   const newCount = items.filter((a) => a.status === "Novo atendimento").length;
   $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><h2>Painel de Atendimento</h2><span>${items.length} registros${newCount ? ` · ${newCount} novo(s)` : ""}</span></div>${rows}</section>`;
 }
@@ -380,13 +382,14 @@ function renderTasks(agenda) {
 
 function renderTeam() {
   const members = state.lawyers;
-  $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><div><h2>Equipe e distribuição</h2><p>Defina a função e a área de cada pessoa para a distribuição correta dos atendimentos.</p></div><span>${members.length} membros ativos</span></div>${members.length ? `<div class="team-workflow-list">${members.map((member) => `<form class="team-profile-form" data-team-profile="${member.id}"><div class="team-profile-identity"><strong>${esc(member.full_name || member.email)}</strong><small>${esc(member.email || "")}</small></div><label>Função<select name="team_function"><option value="Advogado" ${member.team_function === "Advogado" ? "selected" : ""}>Advogado</option><option value="Estagiário" ${member.team_function === "Estagiário" ? "selected" : ""}>Estagiário</option><option value="Auxiliar" ${member.team_function === "Auxiliar" ? "selected" : ""}>Auxiliar</option></select></label><label>Área<input name="practice_area" maxlength="120" placeholder="Ex.: Trabalhista" value="${esc(member.practice_area || "")}"></label><button class="secondary" type="submit">Salvar</button><p class="message hidden" role="status"></p></form>`).join("")}</div>` : empty("Nenhum integrante ativo. Convide uma pessoa para a equipe e ela aparecerá aqui após criar o acesso.")}<div class="team-invites"><h3>Convites ativos</h3>${recordList(state.team, "Nenhum convite ou integrante adicional.", (item) => `<div><strong>${esc(item.email)}</strong><small>Permissão de equipe</small></div><span></span><span class="badge">Ativo</span>`)}</div></section>`;
+  $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><div><h2>Equipe e distribuição</h2><p>Defina função, área e nível de acesso de cada pessoa.</p></div><span>${members.length} membros ativos</span></div>${members.length ? `<div class="team-workflow-list">${members.map((member) => `<form class="team-profile-form" data-team-profile="${member.id}"><div class="team-profile-identity"><strong>${esc(member.full_name || member.email)}</strong><small>${esc(member.email || "")}</small><span class="badge">${member.role === "owner" ? "Administrador principal" : member.role === "super_admin" ? "Super administrador" : "Equipe"}</span></div><label>Função<select name="team_function"><option value="Atendente" ${member.team_function === "Atendente" ? "selected" : ""}>Atendente</option><option value="Estagiário" ${member.team_function === "Estagiário" ? "selected" : ""}>Estagiário</option><option value="Advogado" ${member.team_function === "Advogado" ? "selected" : ""}>Advogado</option></select></label><label>Nível de acesso<select name="role" ${member.role === "owner" ? "disabled" : ""}><option value="staff" ${member.role === "staff" ? "selected" : ""}>Equipe</option><option value="super_admin" ${member.role === "super_admin" ? "selected" : ""}>Super administrador</option></select></label><label>Área<input name="practice_area" maxlength="120" placeholder="Ex.: Trabalhista" value="${esc(member.practice_area || "")}"></label><button class="secondary" type="submit">Salvar</button><p class="message hidden" role="status"></p></form>`).join("")}</div>` : empty("Nenhum integrante ativo. Convide uma pessoa para a equipe e ela aparecerá aqui após criar o acesso.")}<div class="team-invites"><h3>Convites ativos</h3>${state.team.length ? `<div class="records">${state.team.map((item) => `<article class="record"><div><strong>${esc(item.email)}</strong><small>${esc(item.team_function || "Atendente")} · ${item.requested_role === "super_admin" ? "Super administrador" : "Equipe"}</small></div><div class="row-actions"><span class="badge">Ativo</span><button type="button" class="row-action danger" data-invite-delete="${esc(item.email)}">Excluir</button></div></article>`).join("")}</div>` : empty("Nenhum convite ativo.")}</div></section>`;
 }
 
 async function saveTeamProfile(form) {
   const message = form.querySelector(".message");
   const values = new FormData(form);
   const payload = { team_function: values.get("team_function"), practice_area: String(values.get("practice_area") || "").trim() };
+  if (admin() && form.elements.role && !form.elements.role.disabled) payload.role = values.get("role") || "staff";
   const button = form.querySelector("button[type=submit]");
   button.disabled = true;
   try {
@@ -421,7 +424,7 @@ function documentUploadForm() {
 }
 
 function documentRows(items) {
-  return items.length ? `<div class="documents-list">${items.map((d) => `<div class="document-row"><div><strong>${esc(d.file_name)}</strong><small>${date(d.created_at)} · ${Math.ceil(d.size_bytes / 1024)} KB${staff() ? ` · ${esc(contactName(d.contact_id))}` : ""}</small></div><button type="button" class="row-action" data-download="${d.id}">Baixar</button></div>`).join("")}</div>` : empty("Nenhum documento enviado ainda.");
+  return items.length ? `<div class="documents-list">${items.map((d) => `<div class="document-row"><div><strong>${esc(d.file_name)}</strong><small>${date(d.created_at)} · ${Math.ceil(d.size_bytes / 1024)} KB${staff() ? ` · ${esc(contactName(d.contact_id))}` : ""}</small></div><div class="row-actions"><button type="button" class="row-action" data-download="${d.id}">Baixar</button>${admin() ? `<button type="button" class="row-action danger" data-document-delete="${d.id}">Excluir</button>` : ""}</div></div>`).join("")}</div>` : empty("Nenhum documento enviado ainda.");
 }
 
 function renderDocuments() {
@@ -438,7 +441,7 @@ function renderRequests() {
 }
 
 function assignmentControls(contact) {
-  if (state.profile.role !== "owner") return "";
+  if (!admin()) return "";
   const assigned = state.assignments.filter((a) => a.contact_id === contact.id);
   return `<div class="assignment"><label>Advogado responsável<select data-assign="${contact.id}"><option value="">Escolha um integrante</option>${state.lawyers.filter((p) => !assigned.some((a) => a.staff_id === p.id)).map((p) => `<option value="${p.id}">${esc(p.full_name || p.email)}</option>`).join("")}</select></label>
     <button type="button" class="secondary" data-assign-save="${contact.id}">Distribuir</button><div class="assigned-list">${assigned.map((a) => `<span class="badge">${esc(state.lawyers.find((p) => p.id === a.staff_id)?.full_name || state.lawyers.find((p) => p.id === a.staff_id)?.email || "Advogado")} <button type="button" data-unassign="${contact.id}" data-staff="${a.staff_id}" aria-label="Remover atribuição">×</button></span>`).join("")}</div></div>`;
@@ -460,7 +463,7 @@ function openDialog(entity, item = null) {
   } else if (entity === "task") {
     title = item ? "Editar tarefa" : "Nova tarefa";
     fields = `<label>Contato<select name="contact_id" required ${item ? "disabled" : ""}><option value="">Selecione</option>${anyContactOptions.replace(`value="${item?.contact_id}"`, `value="${item?.contact_id}" selected`)}</select></label><label>Tarefa ou compromisso<input name="title" required maxlength="180" value="${esc(item?.title)}"></label><label>Data<input name="due_at" type="date" value="${esc(String(item?.due_at || "").slice(0,10))}"></label><label class="check"><input name="done" type="checkbox" ${checked(item?.done)}> Concluída</label><label class="check"><input name="visible_to_client" type="checkbox" ${checked(item?.visible_to_client)}> Mostrar no portal do cliente</label>`;
-  } else { title = "Adicionar integrante"; fields = `<label>E-mail do integrante<input name="email" type="email" required maxlength="254"></label>`; }
+  } else { title = "Adicionar integrante"; fields = `<label>E-mail do integrante<input name="email" type="email" required maxlength="254"></label><div class="form-grid"><label>Função<select name="team_function"><option>Atendente</option><option>Estagiário</option><option>Advogado</option></select></label><label>Nível de acesso<select name="requested_role"><option value="staff">Equipe</option><option value="super_admin">Super administrador</option></select></label></div><p class="field-help">O convite define o acesso quando a pessoa confirmar o cadastro.</p>`; }
   $("#dialog-title").textContent = title; $("#dialog-fields").innerHTML = fields; showMessage("#dialog-message"); $("#record-dialog").showModal();
 }
 
@@ -472,7 +475,7 @@ async function saveRecord(event) {
   values.visible_to_client = raw.visible_to_client === "on"; values.done = raw.done === "on";
   try {
     let query;
-    if (state.entity === "staff") query = supabase.from("team_invites").insert({ email: values.email.toLowerCase() });
+    if (state.entity === "staff") query = supabase.from("team_invites").insert({ email: values.email.toLowerCase(), team_function: values.team_function || "Atendente", requested_role: values.requested_role || "staff" });
     else {
       const table = state.entity === "contact" ? "contacts" : state.entity === "case" ? "cases" : "tasks";
       const allowed = state.entity === "contact" ? ["name","email","phone","kind","stage","source","notes"] : state.entity === "case" ? ["contact_id","title","area","number","status","description","visible_to_client"] : ["contact_id","title","due_at","done","visible_to_client"];
@@ -518,6 +521,27 @@ async function uploadDocument(form) {
   finally { button.disabled = false; }
 }
 
+async function deleteDocument(id) {
+  const document = state.documents.find((item) => item.id === id);
+  if (!document || !admin() || !window.confirm(`Excluir permanentemente o documento “${document.file_name}”?`)) return;
+  try {
+    const removed = await supabase.storage.from("client-documents").remove([document.path]);
+    if (removed.error) throw removed.error;
+    const { error } = await supabase.from("client_documents").delete().eq("id", id);
+    if (error) throw error;
+    await loadPortal(); showMessage("#portal-message", "Documento excluído.", "success");
+  } catch (error) { showMessage("#portal-message", "Não foi possível excluir o documento. Verifique se você é administrador.", "error"); }
+}
+
+async function deleteRecord(table, id) {
+  if (!admin() || !window.confirm("Excluir permanentemente este registro? Esta ação não pode ser desfeita.")) return;
+  try {
+    const { error } = await supabase.from(table).delete().eq("id", id);
+    if (error) throw error;
+    await loadPortal(); showMessage("#portal-message", "Registro excluído.", "success");
+  } catch { showMessage("#portal-message", "Não foi possível excluir. O registro pode estar vinculado a outros dados.", "error"); }
+}
+
 async function approveRequest(id) {
   const request = state.requests.find((r) => r.id === id);
   const email = state.requestProfiles.find((p) => p.id === request?.user_id)?.email;
@@ -543,7 +567,7 @@ async function approveRequest(id) {
 }
 
 async function updateAssignment(contactId, staffId, remove = false) {
-  if (state.profile.role !== "owner" || !staffId) return;
+  if (!admin() || !staffId) return;
   const query = remove ? supabase.from("client_assignments").delete().eq("contact_id",contactId).eq("staff_id",staffId)
     : supabase.from("client_assignments").insert({contact_id:contactId,staff_id:staffId});
   const { error } = await query;
@@ -587,6 +611,18 @@ document.addEventListener("click", async (event) => {
   if (event.target.closest("[data-attendance-back]")) { state.attendanceDetail = null; render(); return; }
   const attendanceDocs = event.target.closest("[data-attendance-docs]")?.dataset.attendanceDocs;
   if (attendanceDocs) return addAttendanceHistory(attendanceDocs, "Solicitação de documentos", "Solicitação de documentos preparada para envio ao cliente.", "#portal-message");
+  const attendanceDelete = event.target.closest("[data-attendance-delete]")?.dataset.attendanceDelete;
+  if (attendanceDelete) return deleteRecord("attendances", attendanceDelete);
+  const documentDelete = event.target.closest("[data-document-delete]")?.dataset.documentDelete;
+  if (documentDelete) return deleteDocument(documentDelete);
+  const recordDelete = event.target.closest("[data-record-delete]");
+  if (recordDelete) return deleteRecord(recordDelete.dataset.recordDelete, recordDelete.dataset.id);
+  const inviteDelete = event.target.closest("[data-invite-delete]")?.dataset.inviteDelete;
+  if (inviteDelete && admin() && window.confirm(`Excluir o convite de ${inviteDelete}?`)) {
+    const { error } = await supabase.from("team_invites").delete().eq("email", inviteDelete);
+    if (error) return showMessage("#portal-message", "Não foi possível excluir o convite.", "error");
+    await loadPortal(); showMessage("#portal-message", "Convite excluído.", "success"); return;
+  }
   const downloadId = event.target.closest("[data-download]")?.dataset.download;
   if (downloadId) {
     const document = state.documents.find((d) => d.id === downloadId);
