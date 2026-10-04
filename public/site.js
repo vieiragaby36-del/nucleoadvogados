@@ -55,42 +55,5 @@
     status.textContent = ({en: 'Message prepared. Complete the send in your email application.', es: 'Mensaje preparado. Complete el envío en su aplicación de correo.', fr: 'Message préparé. Finalisez l’envoi dans votre messagerie.'})[document.documentElement.lang] || 'Mensagem preparada. Conclua o envio no seu aplicativo de e-mail.';
     location.href = 'mailto:contato@nucleoadvogados.com.br?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
   });
-  const search = document.getElementById('site-search');
-  if (search) {
-    const field = document.getElementById('search-query');
-    const summary = document.getElementById('result-summary');
-    const results = document.getElementById('search-results');
-    const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    const render = async () => {
-      const query = new URLSearchParams(location.search).get('q')?.trim() || '';
-      field.value = query;
-      if (!query) { summary.textContent = 'Digite um termo para encontrar áreas, profissionais e páginas.'; results.replaceChildren(); return; }
-      summary.textContent = 'Buscando…';
-      try {
-        const response = await fetch('/search-index.json');
-        if (!response.ok) throw new Error('Busca indisponível');
-        const data = await response.json();
-        const terms = normalize(query).split(/\s+/).filter(Boolean);
-        const found = data.filter(item => terms.every(term => normalize(item.title + ' ' + item.description + ' ' + item.category).includes(term)));
-        results.replaceChildren();
-        summary.textContent = found.length ? `${found.length} resultado${found.length === 1 ? '' : 's'} para “${query}”.` : `Nenhum conteúdo encontrado para “${query}”. Tente “tributário”, “família” ou “contato”.`;
-        for (const item of found) {
-          const link = document.createElement('a'); link.className = 'search-item'; link.href = item.url;
-          const category = document.createElement('span'); category.textContent = item.category;
-          const title = document.createElement('h2'); title.textContent = item.title;
-          const description = document.createElement('p'); description.textContent = item.description;
-          link.append(category, title, description); results.append(link);
-        }
-      } catch {
-        summary.textContent = 'A busca está temporariamente indisponível. Use o menu ou entre em contato.';
-      }
-    };
-    search.addEventListener('submit', e => {
-      e.preventDefault(); const query = field.value.trim();
-      history.replaceState(null, '', query ? '/busca.html?q=' + encodeURIComponent(query) : '/busca.html');
-      render();
-    });
-    render();
-  }
   if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 })();

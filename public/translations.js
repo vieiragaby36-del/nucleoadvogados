@@ -5,10 +5,10 @@
   if (!select) return;
   const entries = [
     ['.primary-nav a',
-      ['O Escritório','Atuação','Setores','Equipe','Inteligência','Contato','Área do Cliente ↗'],
-      ['The Firm','Practice','Sectors','Team','Insights','Contact','Client Area ↗'],
-      ['El Despacho','Áreas','Sectores','Equipo','Actualidad','Contacto','Área del Cliente ↗'],
-      ['Le Cabinet','Domaines','Secteurs','Équipe','Actualités','Contact','Espace Client ↗']],
+      ['O Escritório','Atuação','Setores','Contato','Área do Cliente ↗'],
+      ['The Firm','Practice','Sectors','Contact','Client Area ↗'],
+      ['El Despacho','Áreas','Sectores','Contacto','Área del Cliente ↗'],
+      ['Le Cabinet','Domaines','Secteurs','Contact','Espace Client ↗']],
     ['.client-link', 'Área do Cliente ↗', 'Client Area ↗', 'Área del Cliente ↗', 'Espace Client ↗'],
     ['.hero h1', 'Segurança jurídica para decisões <em>que importam.</em>', 'Legal clarity for decisions <em>that matter.</em>', 'Seguridad jurídica para decisiones <em>que importan.</em>', 'Sécurité juridique pour les décisions <em>qui comptent.</em>'],
     ['.hero-lead', 'Atuação estratégica para pessoas e empresas que precisam decidir com clareza, precisão e responsabilidade.', 'Strategic legal counsel for people and businesses making important decisions with clarity and care.', 'Asesoría estratégica para personas y empresas que necesitan decidir con claridad y responsabilidad.', 'Conseil juridique stratégique pour les personnes et les entreprises qui prennent des décisions importantes.'],
@@ -43,10 +43,10 @@
     ['.presence strong', ['SP','BSB','Ética','Clareza'], ['SP','BSB','Integrity','Clarity'], ['SP','BSB','Ética','Claridad'], ['SP','BSB','Éthique','Clarté']],
     ['.presence span', ['São Paulo','Brasília','Responsabilidade em cada caso','Comunicação próxima'], ['São Paulo','Brasília','Care in every matter','Clear communication'], ['São Paulo','Brasília','Responsabilidad en cada asunto','Comunicación cercana'], ['São Paulo','Brasília','Responsabilité pour chaque dossier','Communication claire']],
     ['.additional-areas',
-      'Outras frentes já apresentadas pelo escritório incluem Direito Penal, Trabalhista, Saúde, Infraestrutura e Licitações. <a href="/home.html#contato">Converse com a equipe sobre sua demanda ↗</a>',
-      'Other areas presented by the firm include criminal, employment, healthcare, infrastructure and public procurement law. <a href="/home.html#contato">Discuss your needs with our team ↗</a>',
-      'Otras áreas del despacho incluyen derecho penal, laboral, salud, infraestructura y contratación pública. <a href="/home.html#contato">Converse con el equipo sobre su asunto ↗</a>',
-      'Le cabinet présente aussi le droit pénal, social, de la santé, des infrastructures et des marchés publics. <a href="/home.html#contato">Parlez de votre situation à notre équipe ↗</a>'],
+      'Outras frentes já apresentadas pelo escritório incluem Direito Penal, Trabalhista, Saúde, Infraestrutura e Licitações. <a href="/#contato">Converse com a equipe sobre sua demanda ↗</a>',
+      'Other areas presented by the firm include criminal, employment, healthcare, infrastructure and public procurement law. <a href="/#contato">Discuss your needs with our team ↗</a>',
+      'Otras áreas del despacho incluyen derecho penal, laboral, salud, infraestructura y contratación pública. <a href="/#contato">Converse con el equipo sobre su asunto ↗</a>',
+      'Le cabinet présente aussi le droit pénal, social, de la santé, des infrastructures et des marchés publics. <a href="/#contato">Parlez de votre situation à notre équipe ↗</a>'],
     ['.sectors h2', 'O contexto faz parte da estratégia.', 'Context is part of the strategy.', 'El contexto forma parte de la estrategia.', 'Le contexte fait partie de la stratégie.'],
     ['.sectors p:not(.eyebrow)', 'As demandas de cada organização têm particularidades. A análise jurídica começa pela compreensão de suas atividades e decisões.', 'Every organization has its own needs. Legal analysis starts with understanding its activities and decisions.', 'Cada organización tiene necesidades particulares. El análisis jurídico comienza por comprender sus actividades y decisiones.', 'Chaque organisation a ses propres besoins. L’analyse juridique commence par comprendre ses activités et ses décisions.'],
     ['.sectors .inline-link', 'Conheça nossa abordagem ↗', 'Explore our approach ↗', 'Conozca nuestro enfoque ↗', 'Découvrez notre approche ↗'],
@@ -73,7 +73,7 @@
     ['.client-panel p:not(.eyebrow)', 'Consulte os processos e compromissos compartilhados com você pela equipe.', 'View the cases and appointments shared with you by our team.', 'Consulte los casos y citas compartidos por el equipo.', 'Consultez les dossiers et rendez-vous partagés par notre équipe.'],
     ['.footer-identity p', 'Assessoria jurídica com técnica, clareza e responsabilidade em cada decisão.', 'Legal counsel with skill, clarity and responsibility in every decision.', 'Asesoría jurídica con técnica, claridad y responsabilidad en cada decisión.', 'Conseil juridique avec expertise, clarté et responsabilité pour chaque décision.'],
     ['.footer-column h2', ['O Escritório','Atuação','Explore','Contato'], ['The Firm','Practice','Explore','Contact'], ['El Despacho','Áreas','Explore','Contacto'], ['Le Cabinet','Domaines','Explorer','Contact']],
-    ['.footer-column a', ['Quem somos','Nosso método','Equipe','Empresarial','Tributário','Contencioso','Todas as áreas','Setores','Inteligência','Ferramentas','Busca','contato@nucleoadvogados.com.br','+55 (11) 2366-7488','Endereços','Área do Cliente ↗'], ['About us','Our method','Team','Corporate','Tax','Litigation','All practice areas','Sectors','Insights','Tools','Search','contato@nucleoadvogados.com.br','+55 (11) 2366-7488','Locations','Client Area ↗'], ['Quiénes somos','Nuestro método','Equipo','Empresarial','Tributario','Litigios','Todas las áreas','Sectores','Actualidad','Herramientas','Buscar','contato@nucleoadvogados.com.br','+55 (11) 2366-7488','Direcciones','Área del Cliente ↗'], ['Qui sommes-nous','Notre méthode','Équipe','Affaires','Fiscal','Contentieux','Tous les domaines','Secteurs','Actualités','Outils','Recherche','contato@nucleoadvogados.com.br','+55 (11) 2366-7488','Adresses','Espace Client ↗']],
+    ['.footer-column a', ['Quem somos','Nosso método','Setores','Empresarial','Tributário','Contencioso','Todas as áreas','contato@nucleoadvogados.com.br','+55 (11) 2366-7488','Endereços','Área do Cliente ↗'], ['About us','Our method','Sectors','Corporate','Tax','Litigation','All practice areas','contato@nucleoadvogados.com.br','+55 (11) 2366-7488','Locations','Client Area ↗'], ['Quiénes somos','Nuestro método','Sectores','Empresarial','Tributario','Litigios','Todas las áreas','contato@nucleoadvogados.com.br','+55 (11) 2366-7488','Direcciones','Área del Cliente ↗'], ['Qui sommes-nous','Notre méthode','Secteurs','Affaires','Fiscal','Contentieux','Tous les domaines','contato@nucleoadvogados.com.br','+55 (11) 2366-7488','Adresses','Espace Client ↗']],
     ['.footer-bottom a', ['Privacidade e cookies','Termos de uso'], ['Privacy and cookies','Terms of use'], ['Privacidad y cookies','Condiciones de uso'], ['Confidentialité et cookies','Conditions d’utilisation']]
   ];
   const originals = entries.map(([selector]) => [...document.querySelectorAll(selector.replace(/::text$/, ''))].map(el => selector.endsWith('::text') ? el.firstChild?.textContent : el.innerHTML));

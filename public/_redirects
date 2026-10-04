@@ -1,3 +1,7 @@
-# Cloudflare Pages / Netlify-compatible routing
-/ /home.html 200
+/ /index.html 200
+/home.html / 301
+/equipe/* / 301
+/inteligencia.html / 301
+/ferramentas.html / 301
+/busca.html / 301
 /crm /crm/ 301
