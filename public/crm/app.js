@@ -8,7 +8,7 @@ if (configured) {
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
 const date = (value) => value ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${String(value).slice(0, 10)}T12:00:00Z`)) : "Sem data";
-const state = { session: null, profile: null, contacts: [], cases: [], tasks: [], team: [], lawyers: [], requestProfiles: [], requests: [], documents: [], assignments: [], attendances: [], attendanceHistory: [], attendanceDetail: null, view: "dashboard", search: "", editing: null, entity: null, signupDraft: null };
+const state = { session: null, profile: null, contacts: [], cases: [], tasks: [], team: [], lawyers: [], requestProfiles: [], requests: [], documents: [], trashDocuments: [], assignments: [], attendances: [], attendanceHistory: [], contactHistory: [], attendanceDetail: null, view: "dashboard", search: "", editing: null, entity: null, signupDraft: null };
 let recoveryActive = /(?:^|[&#?])type=recovery(?:&|$)/.test(`${location.search}${location.hash}`);
 const portalPrefillEmail = new URLSearchParams(location.search).get("email")?.trim().toLowerCase() || "";
 const admin = () => ["owner", "super_admin"].includes(state.profile?.role);
@@ -209,10 +209,10 @@ async function loadPortal() {
     if (error) throw error;
     state.profile = profile;
     if (profile.role === "pending") {
-      state.contacts = []; state.cases = []; state.tasks = []; state.team = []; state.lawyers = []; state.assignments = []; state.attendances = []; state.attendanceHistory = [];
+      state.contacts = []; state.cases = []; state.tasks = []; state.team = []; state.lawyers = []; state.assignments = []; state.attendances = []; state.attendanceHistory = []; state.contactHistory = []; state.trashDocuments = [];
       const [requests, documents] = await Promise.all([
         supabase.from("client_requests").select("*").eq("user_id", userId),
-        supabase.from("client_documents").select("*").eq("user_id", userId).order("created_at", { ascending: false })
+        supabase.from("client_documents").select("*").eq("user_id", userId).is("deleted_at", null).order("created_at", { ascending: false })
       ]);
       if (requests.error || documents.error) throw requests.error || documents.error;
       state.requests = requests.data || []; state.documents = documents.data || [];
@@ -225,7 +225,7 @@ async function loadPortal() {
         state.requests = refreshed.data || [];
       }
     } else {
-      const [contacts, cases, tasks, team, lawyers, requestProfiles, requests, documents, assignments, attendances, attendanceHistory] = await Promise.all([
+      const [contacts, cases, tasks, team, lawyers, requestProfiles, requests, documents, trashDocuments, assignments, attendances, attendanceHistory, contactHistory] = await Promise.all([
         staff() ? supabase.from("contacts").select("*").order("created_at", { ascending: false }) : profile.role === "client" && profile.contact_id ? supabase.from("contacts").select("*").eq("id", profile.contact_id) : Promise.resolve({ data: [] }),
         supabase.from("cases").select("*").order("updated_at", { ascending: false }),
         supabase.from("tasks").select("*").order("due_at", { ascending: true }),
@@ -233,15 +233,17 @@ async function loadPortal() {
         staff() ? supabase.from("profiles").select("id,email,full_name,role,team_function,practice_area").in("role",["owner","super_admin","staff"]) : Promise.resolve({ data: [] }),
         admin() ? supabase.from("profiles").select("id,email,full_name,role,contact_id,team_function,practice_area") : Promise.resolve({ data: [] }),
         admin() ? supabase.from("client_requests").select("*").order("created_at", { ascending: false }) : supabase.from("client_requests").select("*").eq("user_id",userId),
-        supabase.from("client_documents").select("*").order("created_at", { ascending: false }),
+        supabase.from("client_documents").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
+        admin() ? supabase.from("client_documents").select("*").not("deleted_at", "is", null).order("deleted_at", { ascending: false }) : Promise.resolve({ data: [] }),
         staff() ? supabase.from("client_assignments").select("*") : Promise.resolve({ data: [] }),
         staff() ? supabase.from("attendances").select("*").order("created_at", { ascending: false }) : profile.role === "client" && profile.contact_id ? supabase.from("attendances").select("*").eq("contact_id", profile.contact_id).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
-        staff() ? supabase.from("attendance_history").select("*").order("created_at", { ascending: true }) : Promise.resolve({ data: [] })
+        staff() ? supabase.from("attendance_history").select("*").order("created_at", { ascending: true }) : Promise.resolve({ data: [] }),
+        staff() ? supabase.from("contact_history").select("*").order("created_at", { ascending: false }).limit(20) : Promise.resolve({ data: [] })
       ]);
-      const failed = [contacts, cases, tasks, team, lawyers, requestProfiles, requests, documents, assignments, attendances, attendanceHistory].find((result) => result.error);
+      const failed = [contacts, cases, tasks, team, lawyers, requestProfiles, requests, documents, trashDocuments, assignments, attendances, attendanceHistory, contactHistory].find((result) => result.error);
       if (failed) throw failed.error;
       [state.contacts, state.cases, state.tasks, state.team] = [contacts, cases, tasks, team].map((result) => result.data || []);
-      [state.lawyers, state.requestProfiles, state.requests, state.documents, state.assignments, state.attendances, state.attendanceHistory] = [lawyers, requestProfiles, requests, documents, assignments, attendances, attendanceHistory].map((result) => result.data || []);
+      [state.lawyers, state.requestProfiles, state.requests, state.documents, state.trashDocuments, state.assignments, state.attendances, state.attendanceHistory, state.contactHistory] = [lawyers, requestProfiles, requests, documents, trashDocuments, assignments, attendances, attendanceHistory, contactHistory].map((result) => result.data || []);
     }
     $("#boot").classList.add("hidden");
     $("#portal").classList.remove("hidden");
@@ -268,6 +270,7 @@ function renderNav() {
     tasks: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="m7 12 3 3 7-7"/>',
     agenda: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/>',
     documents: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h8"/>',
+    trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3"/>',
     requests: '<path d="M4 4h16l2 12v4H2v-4L4 4ZM2 16h6a4 4 0 0 0 8 0h6"/>',
     team: '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'
   };
@@ -276,6 +279,7 @@ function renderNav() {
     ...(staff() ? [["attendances", "◷", "Atendimentos"], ["leads", "◇", "Leads"], ["clients", "◉", "Clientes"]] : state.profile.role === "client" ? [["attendances", "◷", "Meu atendimento"]] : [["intake", "✎", "Meu cadastro"]]),
     ["cases", "▣", "Processos"], ["tasks", "✓", "Tarefas"], ["agenda", "◷", "Agenda"],
     ["documents", "▤", "Documentos"],
+    ...(admin() ? [["trash", "♲", "Lixeira"]] : []),
     ...(admin() ? [["requests", "◷", "Cadastros recebidos"], ["team", "♙", "Equipe"]] : [])
   ];
   $("#nav").innerHTML = items.map(([id, , label]) => `<button type="button" data-view="${id}" class="${state.view === id ? "active" : ""}" ${state.view === id ? 'aria-current="page"' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[id]}</svg><span>${label}</span></button>`).join("");
@@ -290,7 +294,7 @@ function render() {
     return;
   }
   renderHead();
-  const renderers = { dashboard: renderDashboard, attendances: renderAttendances, leads: () => renderContacts("lead"), clients: () => renderContacts("client"), intake: renderIntake, documents: renderDocuments, requests: renderRequests, cases: renderCases, tasks: () => renderTasks(false), agenda: () => renderTasks(true), team: renderTeam };
+  const renderers = { dashboard: renderDashboard, attendances: renderAttendances, leads: () => renderContacts("lead"), clients: () => renderContacts("client"), intake: renderIntake, documents: renderDocuments, trash: renderTrash, requests: renderRequests, cases: renderCases, tasks: () => renderTasks(false), agenda: () => renderTasks(true), team: renderTeam };
   (renderers[state.view] || renderDashboard)();
 }
 
@@ -301,8 +305,8 @@ function renderPending() {
 }
 
 function renderHead() {
-  const titles = { dashboard: staff() ? "Visão geral" : "Seu atendimento", attendances: "Atendimentos", leads: "Leads", clients: "Clientes", intake: "Meu cadastro", documents: "Documentos", requests: "Cadastros recebidos", cases: "Processos", tasks: "Tarefas", agenda: "Agenda", team: "Equipe" };
-  const descriptions = { dashboard: staff() ? "Acompanhe os registros do escritório em um só lugar." : "Acompanhe as informações compartilhadas pela equipe.", attendances: "Triagens recebidas pelo site e seus próximos passos.", leads: "Organize oportunidades e próximos contatos.", clients: "Consulte as pessoas atendidas pelo escritório.", intake: "Seus dados enviados ao escritório.", documents: "Arquivos protegidos do atendimento.", requests: "Analise os pedidos antes de vincular clientes.", cases: "Acompanhe casos e processos jurídicos.", tasks: "Controle atividades e compromissos.", agenda: "Veja os compromissos em ordem de data.", team: "Gerencie quem acessa o painel do escritório." };
+  const titles = { dashboard: staff() ? "Visão geral" : "Seu atendimento", attendances: "Atendimentos", leads: "Leads", clients: "Clientes", intake: "Meu cadastro", documents: "Documentos", trash: "Lixeira", requests: "Cadastros recebidos", cases: "Processos", tasks: "Tarefas", agenda: "Agenda", team: "Equipe" };
+  const descriptions = { dashboard: staff() ? "Acompanhe os registros do escritório em um só lugar." : "Acompanhe as informações compartilhadas pela equipe.", attendances: "Triagens recebidas pelo site e seus próximos passos.", leads: "Organize oportunidades e próximos contatos.", clients: "Consulte as pessoas atendidas pelo escritório.", intake: "Seus dados enviados ao escritório.", documents: "Arquivos protegidos do atendimento.", trash: "Restaure documentos ou faça a exclusão definitiva.", requests: "Analise os pedidos antes de vincular clientes.", cases: "Acompanhe casos e processos jurídicos.", tasks: "Controle atividades e compromissos.", agenda: "Veja os compromissos em ordem de data.", team: "Gerencie quem acessa o painel do escritório." };
   const entities = { leads: ["contact", "Novo lead"], clients: ["contact", "Novo cliente"], cases: ["case", "Novo processo"], tasks: ["task", "Nova tarefa"], team: ["staff", "Adicionar integrante"] };
   const action = staff() && (admin() || state.view !== "clients") && entities[state.view] ? `<button class="primary" data-new="${entities[state.view][0]}">＋ ${entities[state.view][1]}</button>` : "";
   $("#page-head").innerHTML = `<div><p class="eyebrow">${staff() ? "NÚCLEO ADVOGADOS · CRM" : "ÁREA DO CLIENTE"}</p><h1>${titles[state.view]}</h1><p>${descriptions[state.view]}</p></div>${action}`;
@@ -320,13 +324,16 @@ const empty = (message) => `<p class="empty">${message}</p>`;
 function renderDashboard() {
   const leads = state.contacts.filter((c) => c.kind === "lead");
   const attendanceQueue = [["Novos","Novo atendimento"],["Em triagem","Em triagem"],["Em análise","Em análise"],["Aguardando advogado","Aguardando validação do advogado"],["Aguardando cliente","Aguardando cliente"],["Concluídos","Concluído"]];
+  const urgentAttendances = state.attendances.filter((item) => item.priority === "Urgente" && !["Concluído","Cancelado"].includes(item.status)).length;
+  const stalledLeads = leads.filter((item) => ["novo","em contato"].includes(item.stage)).length;
+  const recentActivity = state.contactHistory.slice(0, 5);
   const registrations = intakeLeads();
   const clients = state.contacts.filter((c) => c.kind === "client");
   const pending = state.tasks.filter((t) => !t.done);
   const cards = staff() ? [["Leads", leads.length + registrations.length, "Inclui cadastros iniciados", "leads"], ["Clientes", clients.length, "Clientes ativos", "clients"], ["Processos", state.cases.length, "Casos registrados", "cases"], ["Tarefas pendentes", pending.length, "Para acompanhar", "tasks"]] : [["Processos", state.cases.length, "Compartilhados com você", "cases"], ["Compromissos", pending.length, "Tarefas em aberto", "agenda"], ["Concluídos", state.tasks.filter((t) => t.done).length, "Compromissos finalizados", "tasks"], ["Atualizações", state.cases.length + state.tasks.length, "Itens disponíveis", "dashboard"]];
   const stages = ["novo", "em contato", "proposta enviada", "negociação"];
   const main = staff() ? `<div class="pipeline" aria-label="Funil de oportunidades">${stages.map((stage) => `<div class="pipeline-column" data-pipeline-stage="${esc(stage)}" role="list"><h3>${stage}<span>${leads.filter((c) => c.stage === stage).length}</span></h3>${leads.filter((c) => c.stage === stage).slice(0, 8).map((c) => `<button type="button" class="pipeline-item" draggable="true" data-pipeline-card="${c.id}" data-edit="contact" data-id="${c.id}" role="listitem"><strong>${esc(c.name)}</strong><small>${esc(c.source || "Sem origem")}</small></button>`).join("")}${leads.filter((c) => c.stage === stage).length > 8 ? `<small class="pipeline-more">+ ${leads.filter((c) => c.stage === stage).length - 8} oportunidades</small>` : ""}</div>`).join("")}</div>${registrations.length ? `<div class="intake-leads-head"><strong>Cadastros iniciados</strong><button type="button" class="row-action" data-view="requests">Ver todos</button></div>${registrations.slice(0, 4).map(intakeLeadRow).join("")}` : ""}` : recordList(state.cases, "Nenhum processo compartilhado ainda.", (c) => `<div><strong>${esc(c.title)}</strong><small>${esc(c.area || "Área não informada")}</small></div><span></span><span class="badge">${esc(c.status)}</span>`);
-  $("#workspace").innerHTML = `${staff() ? '<div class="dashboard-actions"><span>Seu espaço de trabalho</span><div><button type="button" class="secondary" data-view="attendances">Abrir atendimentos</button><button type="button" class="secondary" data-new="task">＋ Nova tarefa</button></div></div>' : ''}${staff() ? `<section class="attendance-queue"><div class="panel-head"><h2>Fila de atendimentos</h2><button type="button" class="row-action" data-view="attendances">Ver todos ↗</button></div><div>${attendanceQueue.map(([label,status]) => `<button type="button" data-view="attendances"><span>${label}</span><strong>${state.attendances.filter((item) => item.status === status).length}</strong></button>`).join("")}</div></section>` : ""}<div class="kpis">${cards.map(([label, value, note, view]) => `<button type="button" class="card" data-view="${view}" aria-label="${label}: ${value}. Abrir seção"><span>${label}</span><strong>${value}</strong><small>${note}</small><b aria-hidden="true">↗</b></button>`).join("")}</div><div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>${staff() ? "Funil de oportunidades" : "Seus processos"}</h2>${staff() ? '<button type="button" class="row-action" data-view="leads">Ver todos ↗</button>' : ''}</div>${main}</section><section class="panel"><div class="panel-head"><h2>Próximos compromissos</h2><button type="button" class="row-action" data-view="agenda">Ver agenda ↗</button></div>${recordList(pending.slice(0, 6), "Nenhum compromisso pendente.", (t) => `<div><strong>${esc(t.title)}</strong><small>${staff() ? esc(contactName(t.contact_id)) : "Compartilhado com você"}</small></div><span></span><span class="badge">${date(t.due_at)}</span>`)}</section></div>`;
+  $("#workspace").innerHTML = `${staff() ? '<div class="dashboard-actions"><span>Seu espaço de trabalho</span><div><button type="button" class="secondary" data-view="attendances">Abrir atendimentos</button><button type="button" class="secondary" data-new="task">＋ Nova tarefa</button></div></div>' : ''}${staff() ? `<section class="attendance-queue"><div class="panel-head"><h2>Fila de atendimentos</h2><button type="button" class="row-action" data-view="attendances">Ver todos ↗</button></div><div>${attendanceQueue.map(([label,status]) => `<button type="button" data-view="attendances"><span>${label}</span><strong>${state.attendances.filter((item) => item.status === status).length}</strong></button>`).join("")}</div></section>` : ""}<div class="kpis">${cards.map(([label, value, note, view]) => `<button type="button" class="card" data-view="${view}" aria-label="${label}: ${value}. Abrir seção"><span>${label}</span><strong>${value}</strong><small>${note}</small><b aria-hidden="true">↗</b></button>`).join("")}</div>${staff() ? `<section class="dashboard-insights"><article><span>Atendimentos urgentes</span><strong>${urgentAttendances}</strong><small>Em aberto no fluxo jurídico</small></article><article><span>Leads para contato</span><strong>${stalledLeads}</strong><small>Nas primeiras etapas do funil</small></article><article><span>Atividade recente</span><strong>${recentActivity.length}</strong><small>Alterações de etapa registradas</small></article></section>` : ""}<div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>${staff() ? "Funil de oportunidades" : "Seus processos"}</h2>${staff() ? '<button type="button" class="row-action" data-view="leads">Ver todos ↗</button>' : ''}</div>${main}</section><section class="panel"><div class="panel-head"><h2>Próximos compromissos</h2><button type="button" class="row-action" data-view="agenda">Ver agenda ↗</button></div>${recordList(pending.slice(0, 6), "Nenhum compromisso pendente.", (t) => `<div><strong>${esc(t.title)}</strong><small>${staff() ? esc(contactName(t.contact_id)) : "Compartilhado com você"}</small></div><span></span><span class="badge">${date(t.due_at)}</span>`)}</section></div>`;
 }
 
 function recordList(items, message, content, action = "") {
@@ -433,6 +440,12 @@ function renderDocuments() {
     <section class="panel"><div class="panel-head"><h2>${staff() ? "Documentos dos clientes" : "Meus documentos"}</h2><span>${documents.length} arquivos</span></div>${documentRows(documents)}</section>`;
 }
 
+function renderTrash() {
+  const items = filtered(state.trashDocuments, [(d) => d.file_name, (d) => contactName(d.contact_id)]);
+  const rows = items.length ? `<div class="documents-list">${items.map((d) => `<div class="document-row"><div><strong>${esc(d.file_name)}</strong><small>Excluído em ${date(d.deleted_at)} · ${Math.ceil(d.size_bytes / 1024)} KB${d.contact_id ? ` · ${esc(contactName(d.contact_id))}` : ""}</small></div><div class="row-actions"><button type="button" class="row-action" data-document-restore="${d.id}">Restaurar</button><button type="button" class="row-action danger" data-document-purge="${d.id}">Excluir definitivamente</button></div></div>`).join("")}</div>` : empty("A lixeira está vazia.");
+  $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><h2>Documentos na lixeira</h2><span>${items.length} arquivos</span></div>${rows}</section>`;
+}
+
 function renderRequests() {
   const items = state.requests.filter((r) => r.status !== "aprovado");
   const incomplete = intakeLeads().filter((profile) => !state.requests.some((request) => request.user_id === profile.id));
@@ -527,10 +540,29 @@ async function deleteDocument(id) {
   try {
     const removed = await supabase.storage.from("client-documents").remove([document.path]);
     if (removed.error) throw removed.error;
-    const { error } = await supabase.from("client_documents").delete().eq("id", id);
+    const { error } = await supabase.from("client_documents").update({ deleted_at: new Date().toISOString() }).eq("id", id);
     if (error) throw error;
     await loadPortal(); showMessage("#portal-message", "Documento excluído.", "success");
   } catch (error) { showMessage("#portal-message", "Não foi possível excluir o documento. Verifique se você é administrador.", "error"); }
+}
+
+async function restoreDocument(id) {
+  if (!admin()) return;
+  const { error } = await supabase.from("client_documents").update({ deleted_at: null }).eq("id", id);
+  if (error) return showMessage("#portal-message", "Não foi possível restaurar o documento.", "error");
+  await loadPortal(); showMessage("#portal-message", "Documento restaurado.", "success");
+}
+
+async function purgeDocument(id) {
+  const document = state.trashDocuments.find((item) => item.id === id);
+  if (!document || !admin() || !window.confirm(`Excluir definitivamente “${document.file_name}”?`)) return;
+  try {
+    const removed = await supabase.storage.from("client-documents").remove([document.path]);
+    if (removed.error) throw removed.error;
+    const { error } = await supabase.from("client_documents").delete().eq("id", id);
+    if (error) throw error;
+    await loadPortal(); showMessage("#portal-message", "Documento excluído definitivamente.", "success");
+  } catch { showMessage("#portal-message", "Não foi possível concluir a exclusão definitiva.", "error"); }
 }
 
 async function deleteRecord(table, id) {
@@ -660,6 +692,10 @@ document.addEventListener("click", async (event) => {
   if (attendanceDelete) return deleteRecord("attendances", attendanceDelete);
   const documentDelete = event.target.closest("[data-document-delete]")?.dataset.documentDelete;
   if (documentDelete) return deleteDocument(documentDelete);
+  const documentRestore = event.target.closest("[data-document-restore]")?.dataset.documentRestore;
+  if (documentRestore) return restoreDocument(documentRestore);
+  const documentPurge = event.target.closest("[data-document-purge]")?.dataset.documentPurge;
+  if (documentPurge) return purgeDocument(documentPurge);
   const recordDelete = event.target.closest("[data-record-delete]");
   if (recordDelete) return deleteRecord(recordDelete.dataset.recordDelete, recordDelete.dataset.id);
   const inviteDelete = event.target.closest("[data-invite-delete]")?.dataset.inviteDelete;

@@ -38,9 +38,18 @@
     updateTheme();
   });
   const form = document.getElementById('contact-form');
+  const presence = document.querySelector('.presence');
+  if (presence) {
+    const first = presence.children[0];
+    const second = presence.children[1];
+    if (first) first.innerHTML = '<strong>Brasil</strong><span>Atendimento nacional</span>';
+    if (second) second.innerHTML = '<strong>1996</strong><span>Experiência jurídica</span>';
+  }
+  const additionalAreas = document.querySelector('.additional-areas');
+  if (additionalAreas) additionalAreas.innerHTML = 'Outras frentes também podem ser analisadas pelo escritório, incluindo Direito Penal, Trabalhista, Saúde, Infraestrutura e Licitações. <a href="/atuacao/criminal.html">Conheça a atuação criminal ↗</a>';
   if (form) {
     const leadCopy = document.querySelector('.contact-lead > p:not(.eyebrow)');
-    if (leadCopy) leadCopy.textContent = 'Envie sua solicitação pelo atendimento inicial. Você receberá um protocolo e poderá acompanhar o andamento pelo painel.';
+    if (leadCopy) leadCopy.textContent = 'Conte brevemente o que aconteceu. Você receberá um protocolo e poderá acompanhar o atendimento pelo painel.';
     const triage = document.createElement('div');
     triage.className = 'contact-form contact-triage';
     triage.innerHTML = '<p class="eyebrow">ATENDIMENTO INICIAL</p><h3>Vamos entender o seu caso.</h3><p>Conte o que aconteceu, crie seu acesso e acompanhe seu atendimento com segurança.</p><a class="button button-gold" href="/triagem.html">Falar com um advogado <span aria-hidden="true">→</span></a><p class="contact-help">Seu atendimento recebe um número de protocolo assim que a solicitação é enviada.</p>';
