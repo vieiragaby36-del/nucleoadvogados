@@ -61,7 +61,7 @@ def head(title, description, path, *, image="/office-building.webp", extra_schem
 def header():
     links = "".join(f'<a href="{href}">{escape(label)}</a>' for label, href in NAV)
     return f'''<header class="site-header" id="topo"><div class="header-inner">
-      <a class="brand" href="/" aria-label="Núcleo Advogados, página inicial"><img src="/nucleo-logo-gold.png" alt="Núcleo Advogados" width="180" height="60"></a>
+      <a class="brand" href="/" aria-label="Núcleo Advogados, página inicial"><img src="/nucleo-logo-gold-white-text.png" alt="Núcleo Advogados" width="180" height="60"></a>
       <nav class="primary-nav" id="primary-nav" aria-label="Navegação principal">{links}<a class="mobile-client-link" href="/crm/">Área do Cliente <span aria-hidden="true">↗</span></a></nav>
       <div class="header-tools"><a class="client-link" href="/crm/">Área do Cliente <span aria-hidden="true">↗</span></a>
       <div class="language-control"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c-2.5 2.5-3.5 5.5-3.5 9s1 6.5 3.5 9M12 3c2.5 2.5 3.5 5.5 3.5 9s-1 6.5-3.5 9"/></svg><label class="sr-only" for="language-select">Idioma</label><select id="language-select" aria-label="Idioma"><option value="pt">PT</option><option value="en">EN</option><option value="es">ES</option><option value="fr">FR</option></select></div>
@@ -71,7 +71,7 @@ def header():
 
 
 def footer():
-    return '''<footer class="site-footer"><div class="footer-top"><div class="footer-identity"><img src="/nucleo-logo-gold.png" alt="Núcleo Advogados" width="200" height="68"><p>Assessoria jurídica com técnica, clareza e responsabilidade em cada decisão.</p><span>São Paulo · Brasília</span></div>
+    return '''<footer class="site-footer"><div class="footer-top"><div class="footer-identity"><img src="/nucleo-logo-gold-white-text.png" alt="Núcleo Advogados" width="200" height="68"><p>Assessoria jurídica com técnica, clareza e responsabilidade em cada decisão.</p><span>São Paulo · Brasília</span></div>
       <div class="footer-column"><h2>O Escritório</h2><a href="/escritorio.html">Quem somos</a><a href="/#metodo">Nosso método</a><a href="/setores.html">Setores</a></div>
       <div class="footer-column"><h2>Atuação</h2><a href="/atuacao/empresarial-e-societario.html">Empresarial</a><a href="/atuacao/tributario-e-administrativo.html">Tributário</a><a href="/atuacao/contencioso-estrategico.html">Contencioso</a><a href="/#atuacao">Todas as áreas</a></div>
       <div class="footer-column"><h2>Contato</h2><a href="mailto:contato@nucleoadvogados.com.br">contato@nucleoadvogados.com.br</a><a href="tel:+551123667488">+55 (11) 2366-7488</a><a href="/#contato">Endereços</a><a href="/crm/">Área do Cliente ↗</a></div></div>
@@ -96,7 +96,7 @@ def area_cards():
 
 def home():
     description = "Núcleo Advogados: atuação jurídica para pessoas e empresas, com atendimento em São Paulo e Brasília. Conheça as áreas de atuação e a Área do Cliente."
-    organization = {"@context": "https://schema.org", "@type": "LegalService", "name": "Núcleo Advogados", "url": BASE + "/", "logo": BASE + "/nucleo-logo-gold.png", "email": "contato@nucleoadvogados.com.br", "telephone": "+55 11 2366-7488", "areaServed": [{"@type": "City", "name": "São Paulo"}, {"@type": "City", "name": "Brasília"}]}
+    organization = {"@context": "https://schema.org", "@type": "LegalService", "name": "Núcleo Advogados", "url": BASE + "/", "logo": BASE + "/nucleo-logo-gold-white-text.png", "email": "contato@nucleoadvogados.com.br", "telephone": "+55 11 2366-7488", "areaServed": [{"@type": "City", "name": "São Paulo"}, {"@type": "City", "name": "Brasília"}]}
     # The recovery token may arrive at the Site URL. Keep it intact when forwarding to the CRM.
     recovery = '''<script>try{const p=location.search+"&"+location.hash.replace(/^#/,"");if(/(?:^|[&#?])type=recovery(?:&|$)/.test(p))location.replace("/crm/"+location.search+location.hash)}catch(e){}</script>'''
     body = f'''<main id="conteudo">
