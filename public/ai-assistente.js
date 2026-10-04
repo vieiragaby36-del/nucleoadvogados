@@ -85,23 +85,33 @@
   const respond = (text) => {
     const normalized = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const areas = [
-      { pattern: /trabalho|demiss|salario|ferias|fgts|rescis/, name: 'Trabalhista', documents: 'contrato de trabalho, holerites, mensagens e documentos de rescisão' },
-      { pattern: /divorc|guarda|pensao|heran|inventario|familia/, name: 'Família e Sucessões', documents: 'certidões, acordos, comprovantes e registros das conversas relevantes' },
-      { pattern: /empresa|socio|contrato social|societ/, name: 'Empresarial', documents: 'contrato social, acordos, contratos e comunicações entre as partes' },
-      { pattern: /imovel|aluguel|locacao|compra e venda|condominio/, name: 'Imobiliário', documents: 'contrato, matrícula, comprovantes e notificações' },
-      { pattern: /crime|delegacia|inquerito|prisao|acus/, name: 'Criminal', documents: 'intimações e documentos recebidos, sem enviá-los por este chat' },
-      { pattern: /tribut|imposto|multa fiscal|fisco/, name: 'Tributário', documents: 'notificações, autos, guias e comprovantes relacionados à cobrança' },
-      { pattern: /aposent|inss|beneficio|previdenc/, name: 'Previdenciário', documents: 'comunicações do INSS, comprovantes de contribuição e pedidos anteriores' },
-      { pattern: /compra|cobranca|produto|consumidor|servico/, name: 'Consumidor', documents: 'contratos, notas, comprovantes de pagamento e protocolos de atendimento' }
+      { pattern: /trabalho|demiss|salario|ferias|fgts|rescis|justa causa|horas extras|assedi/, name: 'Trabalhista', documents: 'contrato de trabalho, holerites, registro de ponto, mensagens e documentos de rescisão', next: 'Confira as datas de admissão, afastamento ou desligamento e não assine um documento sem entendê-lo.' },
+      { pattern: /divorc|guarda|pensao|heran|inventario|familia|uniao estavel|partilha/, name: 'Família e Sucessões', documents: 'certidões, comprovantes, acordos e registros das conversas relevantes', next: 'Separe as datas importantes, a situação atual dos envolvidos e o que você pretende alcançar.' },
+      { pattern: /empresa|socio|contrato social|societ|startup|negocio|franquia/, name: 'Empresarial e Societário', documents: 'contrato social, acordos, contratos, notas e comunicações entre as partes', next: 'Identifique quem são os envolvidos, os prazos contratuais e o risco que precisa ser evitado.' },
+      { pattern: /imovel|aluguel|locacao|compra e venda|condominio|despejo|usucap/, name: 'Imobiliário', documents: 'contrato, matrícula, comprovantes de pagamento, notificações e fotos', next: 'Não entregue chaves, assine distrato ou faça pagamentos sem guardar os comprovantes e analisar o documento.' },
+      { pattern: /crime|delegacia|inquerito|prisao|acus|boletim|flagrante|policia/, name: 'Criminal', documents: 'intimações e documentos recebidos, sem enviar dados sensíveis por este chat', next: 'Se houver prisão, busca, intimação ou depoimento marcado, procure atendimento humano imediatamente.' },
+      { pattern: /tribut|imposto|multa fiscal|fisco|icms|iss|irpf|execucao fiscal|divida ativa/, name: 'Tributário e Administrativo', documents: 'notificações, autos, guias, decisões e comprovantes relacionados à cobrança', next: 'Anote a data da ciência e o prazo indicado no documento, pois a resposta pode depender dele.' },
+      { pattern: /aposent|inss|beneficio|previdenc|auxilio|bpc/, name: 'Previdenciário', documents: 'comunicações do INSS, comprovantes de contribuição, laudos e pedidos anteriores', next: 'Guarde o protocolo do pedido e confira a data da decisão ou da perícia.' },
+      { pattern: /compra|cobranca|produto|consumidor|servico|negativ|cartao|banco/, name: 'Consumidor', documents: 'contratos, notas, comprovantes de pagamento, protocolos e mensagens', next: 'Registre o protocolo de atendimento e organize uma linha do tempo das tentativas de solução.' },
+      { pattern: /lgpd|dado pessoal|vazamento|privacidade|compliance|protecao de dados/, name: 'Compliance e LGPD', documents: 'políticas, contratos, comunicações, evidências do incidente e registros de acesso', next: 'Preserve os registros do ocorrido e evite apagar evidências antes de uma análise.' }
     ];
     const match = areas.find(item => item.pattern.test(normalized));
-    const urgency = /hoje|amanha|prazo|urgente|preso|prisao|intimacao|audiencia/.test(normalized);
+    const urgency = /hoje|amanha|prazo|urgente|preso|prisao|intimacao|audiencia|liminar|bloqueio|venc(e|ê) amanhã/.test(normalized);
     let message = match
-      ? `Pelo seu relato, o assunto pode estar relacionado a ${match.name}. Para a equipe entender melhor, organize uma linha do tempo com as datas e separe ${match.documents}.`
-      : 'Para organizar sua demanda, anote quando os fatos aconteceram, quem está envolvido, o que você já tentou resolver e quais documentos possui.';
-    if (urgency) message += ' Você mencionou possível urgência ou prazo: informe a data exata à equipe e procure atendimento humano o quanto antes.';
-    message += ' Esta é apenas uma orientação geral; o enquadramento e os próximos passos dependem da análise de um profissional.';
+      ? `Pelo que você descreveu, a demanda pode estar relacionada a ${match.name}. Para uma análise inicial, organize ${match.documents}. ${match.next}`
+      : 'Para eu orientar melhor, informe qual é o assunto, quando aconteceu, quem está envolvido, se existe prazo ou urgência e o que você já tentou resolver. Você também pode iniciar o atendimento pelo formulário para receber um protocolo.';
+    if (urgency) message += ' Você mencionou possível urgência ou prazo. Informe a data exata à equipe e procure atendimento humano o quanto antes.';
+    message += ' Esta é uma orientação geral e não substitui a análise individual de um advogado.';
     return message;
+  };
+
+  const addTyping = () => {
+    const row = document.createElement('div');
+    row.className = 'ai-chat-row ai-chat-row--assistant ai-chat-typing';
+    row.innerHTML = '<img class="ai-chat-message-avatar" src="/mauro-ai-avatar.png" alt="" width="44" height="44"><div class="ai-chat-bubble"><p><span></span><span></span><span></span><em>Analisando sua pergunta…</em></p></div>';
+    messages.append(row);
+    messages.scrollTop = messages.scrollHeight;
+    return row;
   };
 
   triggers.forEach(trigger => {
@@ -127,11 +137,20 @@
     draft = [draft, text].filter(Boolean).join('\n\n');
     input.value = '';
     send.disabled = true;
-    requestAnimationFrame(() => {
-      addMessage('assistant', respond(text), true);
-      send.disabled = false;
-      input.focus();
-    });
+    const typing = addTyping();
+    window.setTimeout(() => {
+      try {
+        typing.remove();
+        addMessage('assistant', respond(text), true);
+      } catch (error) {
+        typing.remove();
+        addMessage('assistant', 'Tive uma instabilidade ao analisar sua mensagem. Tente novamente ou fale diretamente com um advogado pelo formulário de atendimento.');
+        console.error('Assistente Núcleo:', error);
+      } finally {
+        send.disabled = false;
+        input.focus();
+      }
+    }, 420);
   });
   input.addEventListener('keydown', event => {
     if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
