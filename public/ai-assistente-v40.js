@@ -68,15 +68,20 @@
   let responding = false;
   let responseVersion = 0;
   let draft = '';
+  const triageHref = (index) => index !== null && areaKeys[index]
+    ? `/triagem.html?area=${encodeURIComponent(areaKeys[index])}`
+    : '/triagem.html';
   const saveTriageHandoff = (index) => {
     try {
       if (index !== null && areaKeys[index]) sessionStorage.setItem('nucleo-ai-area', areaKeys[index]);
       else sessionStorage.removeItem('nucleo-ai-area');
-      if (draft.trim()) sessionStorage.setItem('nucleo-ai-draft', draft.slice(0, 6000));
-      else sessionStorage.removeItem('nucleo-ai-draft');
+      sessionStorage.removeItem('nucleo-ai-draft');
     } catch {}
   };
-  dialog.querySelector('.ai-chat-side-bottom a').addEventListener('click', () => saveTriageHandoff(selectedArea));
+  dialog.querySelector('.ai-chat-side-bottom a').addEventListener('click', (event) => {
+    event.currentTarget.href = triageHref(selectedArea);
+    saveTriageHandoff(selectedArea);
+  });
   const selectArea = (index) => {
     selectedArea = index;
     areaButtons.forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.practiceArea) === index)));
@@ -116,7 +121,7 @@
     if (link) {
       const action = document.createElement('a');
       action.className = 'ai-chat-action';
-      action.href = '/triagem.html';
+      action.href = triageHref(selectedArea);
       action.textContent = 'Falar com um advogado →';
       action.addEventListener('click', () => saveTriageHandoff(selectedArea));
       bubble.append(action);
@@ -170,7 +175,7 @@
     prompt.textContent = 'Conte sua situação no campo abaixo. A equipe confirmará o enquadramento e a possibilidade de atendimento.';
     const link = document.createElement('a');
     link.className = 'ai-chat-action';
-    link.href = '/triagem.html';
+    link.href = triageHref(index);
     link.textContent = 'Iniciar atendimento nesta área →';
     link.addEventListener('click', () => saveTriageHandoff(index));
     card.append(title, intro, list, prompt, link);
