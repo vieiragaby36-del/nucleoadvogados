@@ -66,6 +66,7 @@
   let knowledge = [];
   let knowledgePromise = null;
   let responding = false;
+  let responseVersion = 0;
   let draft = '';
   const selectArea = (index) => {
     selectedArea = index;
@@ -77,6 +78,7 @@
     if (knowledgePromise) return knowledgePromise;
     const config = window.NUCLEO_SUPABASE || {};
     if (!config.url || !config.publishableKey) return Promise.resolve();
+    knowledge = [];
     knowledgePromise = fetch(`${config.url}/rest/v1/assistant_area_qa?select=area_key,question,keywords,answer&is_published=eq.true&order=created_at.asc`, {
       headers: { apikey: config.publishableKey }, signal: AbortSignal.timeout(7000), cache: 'no-store'
     }).then(async response => {
@@ -121,6 +123,8 @@
     renderMessage(role, content, link);
   };
   const reset = () => {
+    responseVersion++;
+    responding = false;
     draft = '';
     sessions.clear();
     selectArea(null);
@@ -231,20 +235,25 @@
     sessions.get(index).draft = draft;
     input.value = '';
     responding = true;
+    const version = ++responseVersion;
     send.disabled = true;
     const typing = addTyping();
     try {
       await loadKnowledge();
+      if (version !== responseVersion) return;
       typing.remove();
       addMessage('assistant', respond(text, index), true);
     } catch (error) {
+      if (version !== responseVersion) return;
       typing.remove();
       addMessage('assistant', 'Tive uma instabilidade ao analisar sua mensagem. Tente novamente ou fale diretamente com um advogado pelo formulário de atendimento.');
       console.error('Assistente Núcleo:', error);
     } finally {
-      responding = false;
-      send.disabled = false;
-      input.focus({ preventScroll: true });
+      if (version === responseVersion) {
+        responding = false;
+        send.disabled = selectedArea === null;
+        if (selectedArea !== null) input.focus({ preventScroll: true });
+      }
     }
   });
   input.addEventListener('keydown', event => {
