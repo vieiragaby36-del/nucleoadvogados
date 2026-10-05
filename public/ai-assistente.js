@@ -68,6 +68,15 @@
   let responding = false;
   let responseVersion = 0;
   let draft = '';
+  const saveTriageHandoff = (index) => {
+    try {
+      if (index !== null && areaKeys[index]) sessionStorage.setItem('nucleo-ai-area', areaKeys[index]);
+      else sessionStorage.removeItem('nucleo-ai-area');
+      if (draft.trim()) sessionStorage.setItem('nucleo-ai-draft', draft.slice(0, 6000));
+      else sessionStorage.removeItem('nucleo-ai-draft');
+    } catch {}
+  };
+  dialog.querySelector('.ai-chat-side-bottom a').addEventListener('click', () => saveTriageHandoff(selectedArea));
   const selectArea = (index) => {
     selectedArea = index;
     areaButtons.forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.practiceArea) === index)));
@@ -109,9 +118,7 @@
       action.className = 'ai-chat-action';
       action.href = '/triagem.html';
       action.textContent = 'Falar com um advogado →';
-      action.addEventListener('click', () => {
-        try { sessionStorage.setItem('nucleo-ai-draft', draft.slice(0, 6000)); } catch {}
-      });
+      action.addEventListener('click', () => saveTriageHandoff(selectedArea));
       bubble.append(action);
     }
     row.append(bubble);
@@ -165,9 +172,7 @@
     link.className = 'ai-chat-action';
     link.href = '/triagem.html';
     link.textContent = 'Iniciar atendimento nesta área →';
-    link.addEventListener('click', () => {
-      try { sessionStorage.setItem('nucleo-ai-draft', [area[0], draft].filter(Boolean).join('\n\n').slice(0, 6000)); } catch {}
-    });
+    link.addEventListener('click', () => saveTriageHandoff(index));
     card.append(title, intro, list, prompt, link);
     messages.append(card);
     sessions.get(index).messages.forEach(item => renderMessage(item.role, item.content, item.link));

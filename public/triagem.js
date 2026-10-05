@@ -8,6 +8,12 @@ const submissionKeyName = "nucleo-triage-submission-key";
 const attendanceClaimName = "nucleo-attendance-claim";
 const claimTokenName = "nucleo-triage-claim-token";
 try {
+  const aiArea = sessionStorage.getItem("nucleo-ai-area");
+  const areaChoice = [...form.querySelectorAll('input[name="area"]')].find((input) => input.dataset.aiArea === aiArea);
+  if (areaChoice) {
+    areaChoice.checked = true;
+    sessionStorage.removeItem("nucleo-ai-area");
+  }
   const aiDraft = sessionStorage.getItem("nucleo-ai-draft");
   if (aiDraft && description && !description.value) {
     description.value = aiDraft;
