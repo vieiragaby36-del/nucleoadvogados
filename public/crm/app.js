@@ -8,7 +8,14 @@ if (configured) {
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
 const date = (value) => value ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${String(value).slice(0, 10)}T12:00:00Z`)) : "Sem data";
-const state = { session: null, profile: null, contacts: [], cases: [], tasks: [], team: [], lawyers: [], requestProfiles: [], requests: [], documents: [], trashDocuments: [], assignments: [], attendances: [], attendanceHistory: [], contactHistory: [], attendanceDetail: null, view: "dashboard", search: "", editing: null, entity: null, signupDraft: null };
+const state = { session: null, profile: null, contacts: [], cases: [], tasks: [], team: [], lawyers: [], requestProfiles: [], requests: [], documents: [], trashDocuments: [], assignments: [], attendances: [], attendanceHistory: [], contactHistory: [], assistantKnowledge: [], trainingArea: "trabalhista", attendanceDetail: null, view: "dashboard", search: "", editing: null, entity: null, signupDraft: null };
+const assistantAreas = [
+  ["trabalhista","Trabalhista"],["criminal","Criminal"],["familia","Família e Sucessões"],["civel","Cível e Contencioso"],
+  ["previdenciario","Previdenciário"],["empresarial","Empresarial e Societário"],["imobiliario","Imobiliário"],
+  ["tributario","Tributário"],["consumidor","Consumidor"],["lgpd","Compliance e LGPD"],
+  ["administrativo","Administrativo e Licitações"],["internacional","Internacional e Arbitragem"],
+  ["saude","Saúde"],["outro","Outro assunto"]
+];
 let recoveryActive = /(?:^|[&#?])type=recovery(?:&|$)/.test(`${location.search}${location.hash}`);
 const portalPrefillEmail = new URLSearchParams(location.search).get("email")?.trim().toLowerCase() || "";
 const admin = () => ["owner", "super_admin"].includes(state.profile?.role);
@@ -209,7 +216,7 @@ async function loadPortal() {
     if (error) throw error;
     state.profile = profile;
     if (profile.role === "pending") {
-      state.contacts = []; state.cases = []; state.tasks = []; state.team = []; state.lawyers = []; state.assignments = []; state.attendances = []; state.attendanceHistory = []; state.contactHistory = []; state.trashDocuments = [];
+      state.contacts = []; state.cases = []; state.tasks = []; state.team = []; state.lawyers = []; state.assignments = []; state.attendances = []; state.attendanceHistory = []; state.contactHistory = []; state.trashDocuments = []; state.assistantKnowledge = [];
       const [requests, documents] = await Promise.all([
         supabase.from("client_requests").select("*").eq("user_id", userId),
         supabase.from("client_documents").select("*").eq("user_id", userId).is("deleted_at", null).order("created_at", { ascending: false })
@@ -244,6 +251,9 @@ async function loadPortal() {
       if (failed) throw failed.error;
       [state.contacts, state.cases, state.tasks, state.team] = [contacts, cases, tasks, team].map((result) => result.data || []);
       [state.lawyers, state.requestProfiles, state.requests, state.documents, state.trashDocuments, state.assignments, state.attendances, state.attendanceHistory, state.contactHistory] = [lawyers, requestProfiles, requests, documents, trashDocuments, assignments, attendances, attendanceHistory, contactHistory].map((result) => result.data || []);
+      const guides = admin() ? await supabase.from("assistant_area_qa").select("*").order("created_at", { ascending: false }) : { data: [] };
+      if (guides.error) throw guides.error;
+      state.assistantKnowledge = guides.data || [];
     }
     $("#boot").classList.add("hidden");
     $("#portal").classList.remove("hidden");
@@ -272,7 +282,8 @@ function renderNav() {
     documents: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h8"/>',
     trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3"/>',
     requests: '<path d="M4 4h16l2 12v4H2v-4L4 4ZM2 16h6a4 4 0 0 0 8 0h6"/>',
-    team: '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'
+    team: '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM23 21v-2a4 4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+    knowledge: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21V5.5ZM4 18.5A2.5 2.5 0 0 1 6.5 16H20M8 7h8M8 11h6"/>'
   };
   const items = state.profile.role === "pending" ? [["intake", "✎", "Meu cadastro"], ["documents", "▤", "Documentos"]] : [
     ["dashboard", "▦", "Visão geral"],
@@ -280,7 +291,7 @@ function renderNav() {
     ["cases", "▣", "Processos"], ["tasks", "✓", "Tarefas"], ["agenda", "◷", "Agenda"],
     ["documents", "▤", "Documentos"],
     ...(admin() ? [["trash", "♲", "Lixeira"]] : []),
-    ...(admin() ? [["requests", "◷", "Cadastros recebidos"], ["team", "♙", "Equipe"]] : [])
+    ...(admin() ? [["requests", "◷", "Cadastros recebidos"], ["team", "♙", "Equipe"], ["knowledge", "✦", "Ensinar assistente"]] : [])
   ];
   $("#nav").innerHTML = items.map(([id, , label]) => `<button type="button" data-view="${id}" class="${state.view === id ? "active" : ""}" ${state.view === id ? 'aria-current="page"' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[id]}</svg><span>${label}</span></button>`).join("");
   $("#side-caption").textContent = staff() ? "GESTÃO DO ESCRITÓRIO" : "ÁREA DO CLIENTE";
@@ -294,7 +305,7 @@ function render() {
     return;
   }
   renderHead();
-  const renderers = { dashboard: renderDashboard, attendances: renderAttendances, leads: () => renderContacts("lead"), clients: () => renderContacts("client"), intake: renderIntake, documents: renderDocuments, trash: renderTrash, requests: renderRequests, cases: renderCases, tasks: () => renderTasks(false), agenda: () => renderTasks(true), team: renderTeam };
+  const renderers = { dashboard: renderDashboard, attendances: renderAttendances, leads: () => renderContacts("lead"), clients: () => renderContacts("client"), intake: renderIntake, documents: renderDocuments, trash: renderTrash, requests: renderRequests, cases: renderCases, tasks: () => renderTasks(false), agenda: () => renderTasks(true), team: renderTeam, knowledge: renderKnowledge };
   (renderers[state.view] || renderDashboard)();
 }
 
@@ -305,8 +316,8 @@ function renderPending() {
 }
 
 function renderHead() {
-  const titles = { dashboard: staff() ? "Visão geral" : "Seu atendimento", attendances: "Atendimentos", leads: "Leads", clients: "Clientes", intake: "Meu cadastro", documents: "Documentos", trash: "Lixeira", requests: "Cadastros recebidos", cases: "Processos", tasks: "Tarefas", agenda: "Agenda", team: "Equipe" };
-  const descriptions = { dashboard: staff() ? "Acompanhe os registros do escritório em um só lugar." : "Acompanhe as informações compartilhadas pela equipe.", attendances: "Triagens recebidas pelo site e seus próximos passos.", leads: "Organize oportunidades e próximos contatos.", clients: "Consulte as pessoas atendidas pelo escritório.", intake: "Seus dados enviados ao escritório.", documents: "Arquivos protegidos do atendimento.", trash: "Restaure documentos ou faça a exclusão definitiva.", requests: "Analise os pedidos antes de vincular clientes.", cases: "Acompanhe casos e processos jurídicos.", tasks: "Controle atividades e compromissos.", agenda: "Veja os compromissos em ordem de data.", team: "Gerencie quem acessa o painel do escritório." };
+  const titles = { dashboard: staff() ? "Visão geral" : "Seu atendimento", attendances: "Atendimentos", leads: "Leads", clients: "Clientes", intake: "Meu cadastro", documents: "Documentos", trash: "Lixeira", requests: "Cadastros recebidos", cases: "Processos", tasks: "Tarefas", agenda: "Agenda", team: "Equipe", knowledge: "Ensinar assistente" };
+  const descriptions = { dashboard: staff() ? "Acompanhe os registros do escritório em um só lugar." : "Acompanhe as informações compartilhadas pela equipe.", attendances: "Triagens recebidas pelo site e seus próximos passos.", leads: "Organize oportunidades e próximos contatos.", clients: "Consulte as pessoas atendidas pelo escritório.", intake: "Seus dados enviados ao escritório.", documents: "Arquivos protegidos do atendimento.", trash: "Restaure documentos ou faça a exclusão definitiva.", requests: "Analise os pedidos antes de vincular clientes.", cases: "Acompanhe casos e processos jurídicos.", tasks: "Controle atividades e compromissos.", agenda: "Veja os compromissos em ordem de data.", team: "Gerencie quem acessa o painel do escritório.", knowledge: "Cadastre respostas aprovadas para cada área jurídica." };
   const entities = { leads: ["contact", "Novo lead"], clients: ["contact", "Novo cliente"], cases: ["case", "Novo processo"], tasks: ["task", "Nova tarefa"], team: ["staff", "Adicionar integrante"] };
   const action = staff() && (admin() || state.view !== "clients") && entities[state.view] ? `<button class="primary" data-new="${entities[state.view][0]}">＋ ${entities[state.view][1]}</button>` : "";
   $("#page-head").innerHTML = `<div><p class="eyebrow">${staff() ? "NÚCLEO ADVOGADOS · CRM" : "ÁREA DO CLIENTE"}</p><h1>${titles[state.view]}</h1><p>${descriptions[state.view]}</p></div>${action}`;
@@ -390,6 +401,57 @@ function renderTasks(agenda) {
 function renderTeam() {
   const members = state.lawyers;
   $("#workspace").innerHTML = `<section class="panel"><div class="panel-head"><div><h2>Equipe e distribuição</h2><p>Defina função, área e nível de acesso de cada pessoa.</p></div><span>${members.length} membros ativos</span></div>${members.length ? `<div class="team-workflow-list">${members.map((member) => `<form class="team-profile-form" data-team-profile="${member.id}"><div class="team-profile-identity"><strong>${esc(member.full_name || member.email)}</strong><small>${esc(member.email || "")}</small><span class="badge">${member.role === "owner" ? "Administrador principal" : member.role === "super_admin" ? "Super administrador" : "Equipe"}</span></div><label>Função<select name="team_function"><option value="Atendente" ${member.team_function === "Atendente" ? "selected" : ""}>Atendente</option><option value="Estagiário" ${member.team_function === "Estagiário" ? "selected" : ""}>Estagiário</option><option value="Advogado" ${member.team_function === "Advogado" ? "selected" : ""}>Advogado</option></select></label><label>Nível de acesso<select name="role" ${member.role === "owner" ? "disabled" : ""}><option value="staff" ${member.role === "staff" ? "selected" : ""}>Equipe</option><option value="super_admin" ${member.role === "super_admin" ? "selected" : ""}>Super administrador</option></select></label><label>Área<input name="practice_area" maxlength="120" placeholder="Ex.: Trabalhista" value="${esc(member.practice_area || "")}"></label><button class="secondary" type="submit">Salvar</button><p class="message hidden" role="status"></p></form>`).join("")}</div>` : empty("Nenhum integrante ativo. Convide uma pessoa para a equipe e ela aparecerá aqui após criar o acesso.")}<div class="team-invites"><h3>Convites ativos</h3>${state.team.length ? `<div class="records">${state.team.map((item) => `<article class="record"><div><strong>${esc(item.email)}</strong><small>${esc(item.team_function || "Atendente")} · ${item.requested_role === "super_admin" ? "Super administrador" : "Equipe"}</small></div><div class="row-actions"><span class="badge">Ativo</span><button type="button" class="row-action danger" data-invite-delete="${esc(item.email)}">Excluir</button></div></article>`).join("")}</div>` : empty("Nenhum convite ativo.")}</div></section>`;
+}
+
+function renderKnowledge() {
+  if (!admin()) return renderDashboard();
+  const rows = state.assistantKnowledge.filter((item) => item.area_key === state.trainingArea);
+  $("#workspace").innerHTML = `<div class="knowledge-layout"><section class="panel knowledge-editor">
+    <div class="panel-head"><div><h2>Respostas por área</h2><p>Escolha uma área. As respostas publicadas aparecem no assistente dessa aba.</p></div></div>
+    <div class="knowledge-body"><label>Área jurídica<select id="knowledge-area">${assistantAreas.map(([key,label]) => `<option value="${key}" ${state.trainingArea === key ? "selected" : ""}>${esc(label)}</option>`).join("")}</select></label>
+    <form id="knowledge-form"><input type="hidden" name="id"><label>Pergunta que a pessoa pode fazer<input name="question" required minlength="8" maxlength="240" placeholder="Ex.: Como posso iniciar o atendimento?"></label>
+      <label>Termos de busca <span>(opcional, separados por ;)</span><input name="keywords" maxlength="400" placeholder="Ex.: falar com advogado; primeiro contato"></label>
+      <label>Resposta aprovada pela equipe<textarea name="answer" required minlength="12" maxlength="2500" rows="8" placeholder="Escreva a orientação que o assistente poderá usar nesta área."></textarea></label>
+      <label class="knowledge-publish"><input type="checkbox" name="is_published"> Publicar resposta no site</label>
+      <div class="knowledge-actions"><button class="primary" type="submit">Salvar resposta</button><button class="secondary" type="button" data-knowledge-clear>Nova resposta</button></div>
+      <p class="field-help">Inclua apenas informações que podem ser vistas pelo público. Respostas em rascunho não aparecem no site. Este recurso usa perguntas e respostas aprovadas, sem treinar um modelo de linguagem.</p>
+      <p id="knowledge-message" class="message hidden" role="status"></p>
+    </form></div></section>
+    <section class="panel"><div class="panel-head"><h2>Conteúdo desta área</h2><span>${rows.length} ${rows.length === 1 ? "resposta" : "respostas"}</span></div>
+      ${rows.length ? `<div class="knowledge-list">${rows.map((item) => `<article><div><span class="badge">${item.is_published ? "Publicada" : "Rascunho"}</span><h3>${esc(item.question)}</h3><p>${esc(item.answer)}</p>${item.keywords ? `<small>Termos: ${esc(item.keywords)}</small>` : ""}</div><div class="knowledge-item-actions"><button type="button" class="row-action" data-knowledge-edit="${item.id}">Editar</button><button type="button" class="row-action danger" data-knowledge-delete="${item.id}">Excluir</button></div></article>`).join("")}</div>` : empty("Nenhuma resposta cadastrada nesta área.")}
+    </section></div>`;
+}
+
+async function refreshKnowledge() {
+  const { data, error } = await supabase.from("assistant_area_qa").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  state.assistantKnowledge = data || [];
+  renderKnowledge();
+}
+
+async function saveKnowledge(form) {
+  if (!admin()) return;
+  const values = new FormData(form);
+  const id = String(values.get("id") || "");
+  const payload = {
+    area_key: state.trainingArea,
+    question: String(values.get("question") || "").trim(),
+    keywords: String(values.get("keywords") || "").trim(),
+    answer: String(values.get("answer") || "").trim(),
+    is_published: values.has("is_published"),
+    updated_at: new Date().toISOString()
+  };
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    const result = id ? await supabase.from("assistant_area_qa").update(payload).eq("id", id).select("id").single()
+      : await supabase.from("assistant_area_qa").insert(payload).select("id").single();
+    if (result.error) throw result.error;
+    await refreshKnowledge();
+    showMessage("#knowledge-message", "Resposta salva. As publicadas serão usadas na próxima conversa.", "success");
+  } catch (error) {
+    showMessage("#knowledge-message", friendlyError(error), "error");
+  } finally { button.disabled = false; }
 }
 
 async function saveTeamProfile(form) {
@@ -683,6 +745,28 @@ document.addEventListener("drop", async (event) => {
 });
 
 document.addEventListener("click", async (event) => {
+  if (event.target.closest("[data-knowledge-clear]")) { $("#knowledge-form")?.reset(); if ($("#knowledge-form")) $("#knowledge-form").elements.id.value = ""; showMessage("#knowledge-message"); return; }
+  const knowledgeEdit = event.target.closest("[data-knowledge-edit]")?.dataset.knowledgeEdit;
+  if (knowledgeEdit && admin()) {
+    const item = state.assistantKnowledge.find((row) => row.id === knowledgeEdit);
+    const form = $("#knowledge-form");
+    if (!item || !form) return;
+    form.elements.id.value = item.id;
+    form.elements.question.value = item.question;
+    form.elements.keywords.value = item.keywords || "";
+    form.elements.answer.value = item.answer;
+    form.elements.is_published.checked = item.is_published;
+    form.scrollIntoView({ behavior: "smooth", block: "start" });
+    form.elements.question.focus({ preventScroll: true });
+    return;
+  }
+  const knowledgeDelete = event.target.closest("[data-knowledge-delete]")?.dataset.knowledgeDelete;
+  if (knowledgeDelete && admin()) {
+    if (!window.confirm("Excluir esta resposta do assistente?")) return;
+    const { error } = await supabase.from("assistant_area_qa").delete().eq("id", knowledgeDelete);
+    if (error) return showMessage("#portal-message", friendlyError(error), "error");
+    await refreshKnowledge(); showMessage("#portal-message", "Resposta excluída.", "success"); return;
+  }
   const attendanceOpen = event.target.closest("[data-attendance-open]")?.dataset.attendanceOpen;
   if (attendanceOpen) { state.view = "attendances"; state.attendanceDetail = state.attendances.find((item) => item.id === attendanceOpen) || null; renderNav(); render(); return; }
   if (event.target.closest("[data-attendance-back]")) { state.attendanceDetail = null; render(); return; }
@@ -731,6 +815,7 @@ document.addEventListener("click", async (event) => {
 });
 
 document.addEventListener("submit", async (event) => {
+  if (event.target.id === "knowledge-form") { event.preventDefault(); await saveKnowledge(event.target); return; }
   if (event.target.id === "signup-form") { await submitSignup(event); return; }
   if (event.target.id === "intake-form") { event.preventDefault(); await saveIntake(event.target); }
   if (event.target.id === "document-form") { event.preventDefault(); await uploadDocument(event.target); }
@@ -738,6 +823,9 @@ document.addEventListener("submit", async (event) => {
   if (event.target.id === "attendance-note") { event.preventDefault(); const body = String(new FormData(event.target).get("body") || "").trim(); if (!body) return showMessage("#attendance-note-message", "Escreva uma observação antes de registrar.", "error"); await addAttendanceHistory(state.attendanceDetail?.id, "Observação interna", body, "#attendance-note-message"); }
   if (event.target.id === "attendance-opinion") { event.preventDefault(); const body = String(new FormData(event.target).get("body") || "").trim(); if (!body) return showMessage("#attendance-opinion-message", "Escreva o parecer antes de registrar.", "error"); await addAttendanceHistory(state.attendanceDetail?.id, "Parecer interno", body, "#attendance-opinion-message"); }
   if (event.target.matches(".team-profile-form")) { event.preventDefault(); await saveTeamProfile(event.target); }
+});
+document.addEventListener("change", (event) => {
+  if (event.target.id === "knowledge-area" && admin()) { state.trainingArea = event.target.value; renderKnowledge(); }
 });
 
 document.querySelectorAll("[data-auth-mode]").forEach((button) => button.addEventListener("click", () => setAuthMode(button.dataset.authMode)));

@@ -23,6 +23,7 @@
     ['Saúde', 'Questões jurídicas relacionadas ao acesso e à prestação de serviços de saúde.', 'Planos de saúde; negativas de cobertura; contratos de serviços; análise de demandas assistenciais.'],
     ['Outro assunto', 'Não encontrou o tema do seu caso? A equipe pode analisar sua demanda e indicar o encaminhamento adequado.', 'Conte o que aconteceu, quando ocorreu e se há algum prazo informado em documento.']
   ];
+  const areaKeys = ['trabalhista','criminal','familia','civel','previdenciario','empresarial','imobiliario','tributario','consumidor','lgpd','administrativo','internacional','saude','outro'];
   let selectedArea = null;
 
   const icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-8 8H7l-3 2 1.1-4A8 8 0 1 1 20 11.5Z"/><path d="M8 11.5h8M8 14.5h5"/></svg>';
@@ -61,29 +62,30 @@
   const send = dialog.querySelector('.ai-chat-send');
   const areaButtons = [...dialog.querySelectorAll('[data-practice-area]')];
   const mobileArea = dialog.querySelector('#ai-practice-area');
+  const sessions = new Map();
+  let knowledge = [];
+  let knowledgePromise = null;
+  let responding = false;
   let draft = '';
-  let scrollSyncPending = false;
   const selectArea = (index) => {
-    if (selectedArea === index) return;
     selectedArea = index;
     areaButtons.forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.practiceArea) === index)));
     mobileArea.value = index === null ? '' : String(index);
     if (index !== null) areaButtons[index].scrollIntoView({ block: 'nearest' });
   };
-  const syncAreaFromScroll = () => {
-    scrollSyncPending = false;
-    const cards = [...messages.querySelectorAll('.ai-chat-area-card')];
-    if (!cards.length) return selectArea(null);
-    const marker = messages.getBoundingClientRect().top + Math.min(messages.clientHeight * .45, 320);
-    const current = [...cards].reverse().find(card => card.getBoundingClientRect().top <= marker) || cards[0];
-    selectArea(Number(current.dataset.areaIndex));
+  const loadKnowledge = () => {
+    if (knowledgePromise) return knowledgePromise;
+    const config = window.NUCLEO_SUPABASE || {};
+    if (!config.url || !config.publishableKey) return Promise.resolve();
+    knowledgePromise = fetch(`${config.url}/rest/v1/assistant_area_qa?select=area_key,question,keywords,answer&is_published=eq.true&order=created_at.asc`, {
+      headers: { apikey: config.publishableKey }, signal: AbortSignal.timeout(7000), cache: 'no-store'
+    }).then(async response => {
+      if (!response.ok) throw new Error(`Falha ao carregar respostas (${response.status})`);
+      knowledge = await response.json();
+    }).catch(error => { console.warn('Respostas do assistente indisponíveis:', error); });
+    return knowledgePromise;
   };
-  messages.addEventListener('scroll', () => {
-    if (scrollSyncPending) return;
-    scrollSyncPending = true;
-    requestAnimationFrame(syncAreaFromScroll);
-  }, { passive: true });
-  const addMessage = (role, content, link = false) => {
+  const renderMessage = (role, content, link = false) => {
     const row = document.createElement('div');
     row.className = `ai-chat-row ai-chat-row--${role}`;
     if (role === 'assistant') {
@@ -114,28 +116,32 @@
     messages.append(row);
     messages.scrollTop = messages.scrollHeight;
   };
+  const addMessage = (role, content, link = false) => {
+    if (selectedArea !== null) sessions.get(selectedArea).messages.push({ role, content, link });
+    renderMessage(role, content, link);
+  };
   const reset = () => {
     draft = '';
+    sessions.clear();
     selectArea(null);
     messages.replaceChildren();
     const welcome = document.createElement('div');
     welcome.className = 'ai-chat-welcome';
-    welcome.innerHTML = '<div class="ai-chat-avatar-stage"><img src="/mauro-ai-avatar.png" alt="Avatar do Assistente Núcleo" width="447" height="558"></div><span class="ai-chat-eyebrow">BEM-VINDO AO NÚCLEO</span><h2>Como podemos ajudar?</h2><p>Conte sua situação com suas palavras. Posso ajudar a organizar os fatos para o primeiro atendimento com a equipe.</p>';
+    welcome.innerHTML = '<div class="ai-chat-avatar-stage"><img src="/mauro-ai-avatar.png" alt="Avatar do Assistente Núcleo" width="447" height="558"></div><span class="ai-chat-eyebrow">BEM-VINDO AO NÚCLEO</span><h2>Como podemos ajudar?</h2><p>Escolha uma área jurídica ao lado para conhecer os assuntos e iniciar sua conversa.</p>';
     messages.append(welcome);
     input.value = '';
-    input.focus();
+    input.placeholder = 'Selecione uma área para começar';
+    input.disabled = true;
+    send.disabled = true;
   };
   const openArea = (index) => {
     const area = practiceAreas[index];
-    if (!area || send.disabled) return;
+    if (!area || responding) return;
+    if (selectedArea !== null) sessions.get(selectedArea).draft = draft;
     selectArea(index);
-    const existing = messages.querySelector(`.ai-chat-area-card[data-area-index="${index}"]`);
-    if (existing) {
-      messages.scrollTop += existing.getBoundingClientRect().top - messages.getBoundingClientRect().top - 20;
-      input.focus({ preventScroll: true });
-      return;
-    }
-    messages.querySelector('.ai-chat-welcome')?.remove();
+    if (!sessions.has(index)) sessions.set(index, { draft: '', messages: [] });
+    draft = sessions.get(index).draft;
+    messages.replaceChildren();
     const card = document.createElement('section');
     card.className = 'ai-chat-area-card';
     card.dataset.areaIndex = String(index);
@@ -160,41 +166,34 @@
     });
     card.append(title, intro, list, prompt, link);
     messages.append(card);
-    messages.scrollTop = messages.scrollHeight;
+    sessions.get(index).messages.forEach(item => renderMessage(item.role, item.content, item.link));
+    if (!sessions.get(index).messages.length) messages.scrollTop = 0;
+    input.disabled = false;
+    send.disabled = false;
+    input.placeholder = `Pergunte sobre ${area[0]}`;
     input.focus({ preventScroll: true });
   };
   areaButtons.forEach(button => button.addEventListener('click', () => openArea(Number(button.dataset.practiceArea))));
   mobileArea.addEventListener('change', event => {
     if (event.target.value !== '') openArea(Number(event.target.value));
   });
-  const respond = (text) => {
-    const normalized = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    if (normalized.includes('trabalhista') || normalized.includes('trabalho')) {
-      return 'Pelo que você descreveu, a demanda pode estar relacionada a Direito Trabalhista. Organize contrato de trabalho, holerites, registro de ponto, mensagens e documentos de rescisão. Como você mencionou audiência ou prazo, informe a data exata à equipe e procure atendimento humano imediatamente. Esta é uma orientação geral e não substitui a análise individual de um advogado.';
-    }
-    const areas = [
-      { pattern: /trabalh|demiss|salario|ferias|fgts|rescis|justa causa|horas extras|assedi/, name: 'Trabalhista', documents: 'contrato de trabalho, holerites, registro de ponto, mensagens e documentos de rescisão', next: 'Confira as datas de admissão, afastamento ou desligamento e não assine um documento sem entendê-lo.' },
-      { pattern: /divorc|guarda|pensao|heran|inventario|familia|uniao estavel|partilha/, name: 'Família e Sucessões', documents: 'certidões, comprovantes, acordos e registros das conversas relevantes', next: 'Separe as datas importantes, a situação atual dos envolvidos e o que você pretende alcançar.' },
-      { pattern: /empresa|socio|contrato social|societ|startup|negocio|franquia/, name: 'Empresarial e Societário', documents: 'contrato social, acordos, contratos, notas e comunicações entre as partes', next: 'Identifique quem são os envolvidos, os prazos contratuais e o risco que precisa ser evitado.' },
-      { pattern: /imovel|aluguel|locacao|compra e venda|condominio|despejo|usucap/, name: 'Imobiliário', documents: 'contrato, matrícula, comprovantes de pagamento, notificações e fotos', next: 'Não entregue chaves, assine distrato ou faça pagamentos sem guardar os comprovantes e analisar o documento.' },
-      { pattern: /crime|delegacia|inquerito|prisao|acus|boletim|flagrante|policia/, name: 'Criminal', documents: 'intimações e documentos recebidos, sem enviar dados sensíveis por este chat', next: 'Se houver prisão, busca, intimação ou depoimento marcado, procure atendimento humano imediatamente.' },
-      { pattern: /tribut|imposto|multa fiscal|fisco|icms|iss|irpf|execucao fiscal|divida ativa/, name: 'Tributário e Administrativo', documents: 'notificações, autos, guias, decisões e comprovantes relacionados à cobrança', next: 'Anote a data da ciência e o prazo indicado no documento, pois a resposta pode depender dele.' },
-      { pattern: /aposent|inss|beneficio|previdenc|auxilio|bpc/, name: 'Previdenciário', documents: 'comunicações do INSS, comprovantes de contribuição, laudos e pedidos anteriores', next: 'Guarde o protocolo do pedido e confira a data da decisão ou da perícia.' },
-      { pattern: /compra|cobranca|produto|consumidor|servico|negativ|cartao|banco/, name: 'Consumidor', documents: 'contratos, notas, comprovantes de pagamento, protocolos e mensagens', next: 'Registre o protocolo de atendimento e organize uma linha do tempo das tentativas de solução.' },
-      { pattern: /lgpd|dado pessoal|vazamento|privacidade|compliance|protecao de dados/, name: 'Compliance e LGPD', documents: 'políticas, contratos, comunicações, evidências do incidente e registros de acesso', next: 'Preserve os registros do ocorrido e evite apagar evidências antes de uma análise.' }
-    ];
-    const match = areas.find(item => item.pattern.test(normalized))
-      || (normalized.includes('trabalh') ? areas[0] : null)
-      || (normalized.includes('criminal') ? areas[4] : null)
-      || (normalized.includes('tribut') ? areas[5] : null)
-      || (normalized.includes('famil') ? areas[1] : null);
-    const urgency = /hoje|amanha|prazo|urgente|preso|prisao|intimacao|audiencia|liminar|bloqueio|venc(e|ê) amanhã/.test(normalized);
-    let message = match
-      ? `Pelo que você descreveu, a demanda pode estar relacionada a ${match.name}. Para uma análise inicial, organize ${match.documents}. ${match.next}`
-      : 'Para eu orientar melhor, informe qual é o assunto, quando aconteceu, quem está envolvido, se existe prazo ou urgência e o que você já tentou resolver. Você também pode iniciar o atendimento pelo formulário para receber um protocolo.';
-    if (urgency) message += ' Você mencionou possível urgência ou prazo. Informe a data exata à equipe e procure atendimento humano o quanto antes.';
-    message += ' Esta é uma orientação geral e não substitui a análise individual de um advogado.';
-    return message;
+  const normalize = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const stopWords = new Set(['como','qual','quais','para','sobre','essa','esse','esta','estou','com','uma','que','meu','minha','posso','ter','por','dos','das','nos','nas']);
+  const words = (value) => normalize(value).split(' ').filter(word => word.length >= 4 && !stopWords.has(word));
+  const respond = (text, index) => {
+    const area = practiceAreas[index];
+    const question = normalize(text);
+    const asked = new Set(words(text));
+    const match = knowledge.filter(item => item.area_key === areaKeys[index]).map(item => {
+      const terms = new Set(words(item.question));
+      const overlap = [...asked].filter(word => terms.has(word)).length;
+      const phrases = String(item.keywords || '').split(';').map(normalize).filter(Boolean);
+      const exactKeyword = phrases.some(phrase => question.includes(phrase));
+      const questionMatch = question.length >= 10 && (normalize(item.question).includes(question) || question.includes(normalize(item.question)));
+      return { item, score: overlap + (exactKeyword ? 4 : 0) + (questionMatch ? 5 : 0) };
+    }).sort((a, b) => b.score - a.score)[0];
+    if (match && match.score >= 2) return `${match.item.answer}\n\nEsta é uma orientação inicial. A equipe avaliará os detalhes do seu caso.`;
+    return `Na área ${area[0]}, podemos ajudar a organizar o primeiro atendimento sobre ${area[1].charAt(0).toLowerCase() + area[1].slice(1)} Para direcionar sua solicitação, conte o que aconteceu, quando ocorreu e se há documento, intimação ou prazo. Se houver urgência, use “Iniciar atendimento nesta área” para falar com a equipe. Esta é uma orientação inicial e não substitui a avaliação de um advogado.`;
   };
 
   const addTyping = () => {
@@ -212,37 +211,41 @@
     trigger.addEventListener('click', () => {
       dialog.showModal();
       trigger.setAttribute('aria-expanded', 'true');
+      knowledgePromise = null;
+      loadKnowledge();
       if (!messages.children.length) reset();
-      else input.focus();
+      else if (!input.disabled) input.focus();
     });
   });
   dialog.addEventListener('close', () => triggers.forEach(trigger => trigger.setAttribute('aria-expanded', 'false')));
   dialog.querySelector('.ai-chat-close').addEventListener('click', () => dialog.close());
   dialog.querySelectorAll('.ai-chat-new').forEach(button => button.addEventListener('click', reset));
   dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
-  dialog.querySelector('.ai-chat-form').addEventListener('submit', event => {
+  dialog.querySelector('.ai-chat-form').addEventListener('submit', async event => {
     event.preventDefault();
     const text = input.value.trim();
-    if (!text || send.disabled) return;
-    messages.querySelector('.ai-chat-welcome')?.remove();
+    if (!text || responding || selectedArea === null) return;
+    const index = selectedArea;
     addMessage('user', text);
     draft = [draft, text].filter(Boolean).join('\n\n');
+    sessions.get(index).draft = draft;
     input.value = '';
+    responding = true;
     send.disabled = true;
     const typing = addTyping();
-    window.setTimeout(() => {
-      try {
-        typing.remove();
-        addMessage('assistant', respond(text), true);
-      } catch (error) {
-        typing.remove();
-        addMessage('assistant', 'Tive uma instabilidade ao analisar sua mensagem. Tente novamente ou fale diretamente com um advogado pelo formulário de atendimento.');
-        console.error('Assistente Núcleo:', error);
-      } finally {
-        send.disabled = false;
-        input.focus();
-      }
-    }, 420);
+    try {
+      await loadKnowledge();
+      typing.remove();
+      addMessage('assistant', respond(text, index), true);
+    } catch (error) {
+      typing.remove();
+      addMessage('assistant', 'Tive uma instabilidade ao analisar sua mensagem. Tente novamente ou fale diretamente com um advogado pelo formulário de atendimento.');
+      console.error('Assistente Núcleo:', error);
+    } finally {
+      responding = false;
+      send.disabled = false;
+      input.focus({ preventScroll: true });
+    }
   });
   input.addEventListener('keydown', event => {
     if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
