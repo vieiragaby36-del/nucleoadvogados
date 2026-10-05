@@ -59,7 +59,30 @@
   const messages = dialog.querySelector('.ai-chat-messages');
   const input = dialog.querySelector('#ai-chat-input');
   const send = dialog.querySelector('.ai-chat-send');
+  const areaButtons = [...dialog.querySelectorAll('[data-practice-area]')];
+  const mobileArea = dialog.querySelector('#ai-practice-area');
   let draft = '';
+  let scrollSyncPending = false;
+  const selectArea = (index) => {
+    if (selectedArea === index) return;
+    selectedArea = index;
+    areaButtons.forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.practiceArea) === index)));
+    mobileArea.value = index === null ? '' : String(index);
+    if (index !== null) areaButtons[index].scrollIntoView({ block: 'nearest' });
+  };
+  const syncAreaFromScroll = () => {
+    scrollSyncPending = false;
+    const cards = [...messages.querySelectorAll('.ai-chat-area-card')];
+    if (!cards.length) return selectArea(null);
+    const marker = messages.getBoundingClientRect().top + Math.min(messages.clientHeight * .45, 320);
+    const current = [...cards].reverse().find(card => card.getBoundingClientRect().top <= marker) || cards[0];
+    selectArea(Number(current.dataset.areaIndex));
+  };
+  messages.addEventListener('scroll', () => {
+    if (scrollSyncPending) return;
+    scrollSyncPending = true;
+    requestAnimationFrame(syncAreaFromScroll);
+  }, { passive: true });
   const addMessage = (role, content, link = false) => {
     const row = document.createElement('div');
     row.className = `ai-chat-row ai-chat-row--${role}`;
@@ -93,9 +116,7 @@
   };
   const reset = () => {
     draft = '';
-    selectedArea = null;
-    dialog.querySelectorAll('[data-practice-area]').forEach(button => button.setAttribute('aria-pressed', 'false'));
-    dialog.querySelector('#ai-practice-area').value = '';
+    selectArea(null);
     messages.replaceChildren();
     const welcome = document.createElement('div');
     welcome.className = 'ai-chat-welcome';
@@ -107,12 +128,17 @@
   const openArea = (index) => {
     const area = practiceAreas[index];
     if (!area || send.disabled) return;
-    selectedArea = index;
-    dialog.querySelectorAll('[data-practice-area]').forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.practiceArea) === index)));
-    dialog.querySelector('#ai-practice-area').value = String(index);
+    selectArea(index);
+    const existing = messages.querySelector(`.ai-chat-area-card[data-area-index="${index}"]`);
+    if (existing) {
+      messages.scrollTop += existing.getBoundingClientRect().top - messages.getBoundingClientRect().top - 20;
+      input.focus({ preventScroll: true });
+      return;
+    }
     messages.querySelector('.ai-chat-welcome')?.remove();
     const card = document.createElement('section');
     card.className = 'ai-chat-area-card';
+    card.dataset.areaIndex = String(index);
     const title = document.createElement('h2');
     title.textContent = area[0];
     const intro = document.createElement('p');
@@ -137,8 +163,8 @@
     messages.scrollTop = messages.scrollHeight;
     input.focus({ preventScroll: true });
   };
-  dialog.querySelectorAll('[data-practice-area]').forEach(button => button.addEventListener('click', () => openArea(Number(button.dataset.practiceArea))));
-  dialog.querySelector('#ai-practice-area').addEventListener('change', event => {
+  areaButtons.forEach(button => button.addEventListener('click', () => openArea(Number(button.dataset.practiceArea))));
+  mobileArea.addEventListener('change', event => {
     if (event.target.value !== '') openArea(Number(event.target.value));
   });
   const respond = (text) => {
