@@ -207,12 +207,12 @@ async function handleSession(session) {
   $("#boot").classList.remove("hidden");
   const run = ++portalLoadRun;
   try {
-    await withTimeout(loadPortal(run), 15000, "O portal demorou mais que o esperado para responder.");
+    await withTimeout(loadPortal(run), 3000, "O portal demorou mais que o esperado para responder.");
   } catch (error) {
     console.error("[Núcleo Advogados] Tempo limite ao carregar o portal", error);
     $("#boot").classList.add("hidden");
     showAuth();
-    showMessage("#auth-message", "O portal demorou para responder. Tente entrar novamente em alguns segundos.", "error");
+    showMessage("#auth-message", "O portal não respondeu em 3 segundos. Confira sua conexão e tente entrar novamente.", "error");
   }
 }
 
