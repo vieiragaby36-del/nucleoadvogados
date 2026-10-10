@@ -21,6 +21,15 @@ const portalPrefillEmail = new URLSearchParams(location.search).get("email")?.tr
 const admin = () => ["owner", "super_admin"].includes(state.profile?.role);
 const staff = () => ["owner", "super_admin", "staff"].includes(state.profile?.role);
 const authRedirectUrl = () => new URL("/crm/", location.origin).toString();
+let portalLoadRun = 0;
+
+function withTimeout(promise, milliseconds, message = "Tempo limite excedido") {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), milliseconds);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
 
 function showMessage(target, message = "", type = "") {
   const node = $(target);
@@ -196,10 +205,18 @@ async function handleSession(session) {
   if (!session) return showAuth();
   $("#auth").classList.add("hidden");
   $("#boot").classList.remove("hidden");
-  await loadPortal();
+  const run = ++portalLoadRun;
+  try {
+    await withTimeout(loadPortal(run), 15000, "O portal demorou mais que o esperado para responder.");
+  } catch (error) {
+    console.error("[Núcleo Advogados] Tempo limite ao carregar o portal", error);
+    $("#boot").classList.add("hidden");
+    showAuth();
+    showMessage("#auth-message", "O portal demorou para responder. Tente entrar novamente em alguns segundos.", "error");
+  }
 }
 
-async function loadPortal() {
+async function loadPortal(run = 0) {
   try {
     const userId = state.session.user.id;
     const pendingClaim = sessionStorage.getItem("nucleo-attendance-claim");
@@ -271,6 +288,7 @@ async function loadPortal() {
       if (guides.error) throw guides.error;
       state.assistantKnowledge = guides.data || [];
     }
+    if (run && run !== portalLoadRun) return;
     $("#boot").classList.add("hidden");
     $("#portal").classList.remove("hidden");
     $("#account-email").textContent = profile.email;
