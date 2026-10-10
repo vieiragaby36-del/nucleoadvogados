@@ -81,7 +81,7 @@ form.addEventListener("submit", async (event) => {
     sessionStorage.setItem(attendanceClaimName, JSON.stringify({ attendanceId: attendance.attendance_id, claimToken: accountClaimToken }));
     const email = valueOf("email").toLowerCase();
     let accessCopy = "Confirme o e-mail enviado para liberar seu acesso. Depois, entre para acompanhar seu processo, enviar documentos e conversar com nossa equipe.";
-    const signup = await supabase.auth.signUp({ email, password: valueOf("password"), options: { emailRedirectTo: new URL("/crm/", location.origin).toString(), data: { full_name: valueOf("name") } } });
+    const signup = await supabase.auth.signUp({ email, password: valueOf("password"), options: { emailRedirectTo: new URL("/crm/", location.origin).toString(), data: { full_name: valueOf("name"), phone: valueOf("phone"), city: valueOf("city"), subject: valueOf("area"), description: valueOf("description") } } });
     if (signup.error) accessCopy = "Seu atendimento foi registrado. Para acompanhar seu processo, entre com seu e-mail no painel ou use “Esqueci a senha” caso já possua acesso.";
     else if (!signup.data?.session) accessCopy = "Seu acesso está reservado. Confirme o e-mail enviado e, em seguida, entre para acompanhar seu processo.";
     document.querySelector("#attendance-number").textContent = `#${attendance.attendance_number}`;

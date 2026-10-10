@@ -206,6 +206,14 @@ async function loadPortal() {
     if (pendingClaim) {
       try {
         const claim = JSON.parse(pendingClaim);
+        const metadata = state.session.user.user_metadata || {};
+        if (metadata.full_name && metadata.subject) {
+          const existingRequest = await supabase.from("client_requests").select("id").eq("user_id", userId).limit(1);
+          if (!existingRequest.error && !existingRequest.data?.length) {
+            const createdRequest = await supabase.from("client_requests").insert({ user_id: userId, full_name: String(metadata.full_name).trim(), phone: String(metadata.phone || "").trim(), subject: String(metadata.subject).trim(), description: String(metadata.description || "").trim() });
+            if (createdRequest.error && !/duplicate|unique/i.test(createdRequest.error.message || "")) throw createdRequest.error;
+          }
+        }
         if (claim?.attendanceId && claim?.claimToken) {
           const { error: claimError } = await supabase.rpc("claim_attendance_access", { p_attendance_id: claim.attendanceId, p_account_claim_token: claim.claimToken });
           if (!claimError) sessionStorage.removeItem("nucleo-attendance-claim");
