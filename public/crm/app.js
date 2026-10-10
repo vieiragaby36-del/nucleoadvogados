@@ -482,7 +482,7 @@ function renderIntake() {
       <label>Conte brevemente sua necessidade<textarea name="description" required minlength="10" maxlength="3000" rows="5">${esc(request?.description)}</textarea></label>
       <label class="check"><input type="checkbox" required> Confirmo que os dados são verdadeiros e li a <a href="/politica-de-privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>.</label>
       <button class="primary" type="submit">${request ? "Atualizar meus dados" : "Enviar cadastro"}</button><p id="intake-message" class="message hidden" role="status"></p>
-    </form></div></section>${request ? documentUploadForm() + `<section class="panel"><div class="panel-head"><h2>Documentos enviados</h2></div>${documentRows(state.documents)}</section>` : '<p class="empty">Depois de enviar o cadastro, você poderá anexar documentos em PDF, JPG ou PNG.</p>'}`;
+    </form></div></section>${request ? documentUploadForm() + `<section class="panel"><div class="panel-head"><h2>Documentos enviados</h2></div>${documentRows(state.documents)}</section>` : '<p class="empty">Depois de enviar o cadastro, você poderá anexar documentos em PDF, imagem, áudio ou vídeo.</p>'}`;
 }
 
 function documentUploadForm() {
