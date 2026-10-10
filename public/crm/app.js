@@ -487,8 +487,8 @@ function renderIntake() {
 
 function documentUploadForm() {
   return `<section class="panel upload-panel"><div class="panel-head"><h2>Enviar documentos</h2></div><div class="intake-body">
-    <p>Envie somente arquivos necessários ao atendimento. Formatos: PDF, JPG ou PNG, até 10 MB por arquivo.</p>
-    <form id="document-form" class="upload-form"><label>Escolher arquivo<input name="file" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required></label>
+    <p>Envie somente arquivos necessários ao atendimento. Aceitamos PDF, imagens, áudio e vídeo, até 50 MB por arquivo.</p>
+    <form id="document-form" class="upload-form"><label>Escolher arquivo<input name="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.mp3,.m4a,.wav,.ogg,.mp4,.webm,.mov,application/pdf,image/jpeg,image/png,image/webp,image/gif,audio/mpeg,audio/mp4,audio/wav,audio/ogg,video/mp4,video/webm,video/quicktime" required></label>
     <button type="submit" class="primary">Enviar documento</button><p id="document-message" class="message hidden" role="status"></p></form></div></section>`;
 }
 
@@ -581,10 +581,23 @@ async function saveIntake(form) {
 async function uploadDocument(form) {
   const file = form.elements.file.files[0];
   if (!file) return;
-  const allowed = ["application/pdf","image/jpeg","image/png"];
-  if (!allowed.includes(file.type) || file.size > 10485760 || !file.size) return showMessage("#document-message", "Use PDF, JPG ou PNG com até 10 MB.", "error");
+  const extensionByType = {
+    "application/pdf": "pdf",
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/gif": "gif",
+    "audio/mpeg": "mp3",
+    "audio/mp4": "m4a",
+    "audio/wav": "wav",
+    "audio/ogg": "ogg",
+    "video/mp4": "mp4",
+    "video/webm": "webm",
+    "video/quicktime": "mov"
+  };
+  if (!extensionByType[file.type] || file.size > 52428800 || !file.size) return showMessage("#document-message", "Use PDF, imagem, áudio ou vídeo com até 50 MB.", "error");
   const button = form.querySelector('button[type="submit"]'); button.disabled = true;
-  const extension = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png" }[file.type];
+  const extension = extensionByType[file.type];
   const path = `${state.profile.id}/${crypto.randomUUID()}.${extension}`;
   try {
     const uploaded = await supabase.storage.from("client-documents").upload(path,file,{contentType:file.type,upsert:false});
