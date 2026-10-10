@@ -105,7 +105,7 @@ using (user_id=(select auth.uid()) or private.is_crm_owner()
 create policy client_documents_insert on public.client_documents for insert to authenticated
 with check (user_id=(select auth.uid())
   and (contact_id is null or contact_id=private.current_contact_id())
-  and exists(select 1 from public.client_requests r where r.user_id=(select auth.uid())));
+  and (exists(select 1 from public.client_requests r where r.user_id=(select auth.uid())) or exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.role='client' and p.contact_id is not null)));
 create policy client_documents_update on public.client_documents for update to authenticated
 using (private.is_crm_owner()) with check (private.is_crm_owner());
 
@@ -154,7 +154,7 @@ on conflict (id) do update set public=false, file_size_limit=52428800,
 create policy client_files_insert on storage.objects for insert to authenticated
 with check (bucket_id='client-documents'
   and (storage.foldername(name))[1]=(select auth.uid())::text
-  and exists(select 1 from public.client_requests r where r.user_id=(select auth.uid())));
+  and (exists(select 1 from public.client_requests r where r.user_id=(select auth.uid())) or exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.role='client' and p.contact_id is not null)));
 create policy client_files_select on storage.objects for select to authenticated
 using (bucket_id='client-documents'
   and ((storage.foldername(name))[1]=(select auth.uid())::text or private.is_crm_owner()

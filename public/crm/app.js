@@ -498,7 +498,7 @@ function documentRows(items) {
 
 function renderDocuments() {
   const documents = filtered(state.documents, [(d) => d.file_name, (d) => contactName(d.contact_id)]);
-  $("#workspace").innerHTML = `${!staff() && state.requests.length ? documentUploadForm() : ""}
+  $("#workspace").innerHTML = `${!staff() && (state.requests.length || state.attendances.length) ? documentUploadForm() : ""}
     <section class="panel"><div class="panel-head"><h2>${staff() ? "Documentos dos clientes" : "Meus documentos"}</h2><span>${documents.length} arquivos</span></div>${documentRows(documents)}</section>`;
 }
 
