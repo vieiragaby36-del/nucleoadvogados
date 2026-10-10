@@ -27,7 +27,7 @@
         <p id="auth-copy">Use o e-mail cadastrado junto ao escritório.</p>
         <form id="auth-form">
           <label>E-mail<input id="auth-email" name="email" type="email" autocomplete="email" required></label>
-          <label id="password-field">Senha<input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="8" required></label>
+          <label id="password-field">Senha<span class="password-wrap"><input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="8" required><button class="password-toggle" type="button" data-target="auth-password" aria-label="Mostrar senha" title="Mostrar senha">◉</button></span></label>
           <button class="primary full" id="auth-submit" type="submit">Entrar</button>
         </form>
         <form id="signup-form" class="hidden">
@@ -40,8 +40,8 @@
           <button class="secondary full" id="signup-back" type="button">Voltar</button>
         </form>
         <form id="recovery-form" class="hidden">
-          <label>Nova senha<input id="new-password" type="password" autocomplete="new-password" minlength="8" required></label>
-          <label>Confirme a nova senha<input id="confirm-password" type="password" autocomplete="new-password" minlength="8" required></label>
+          <label>Nova senha<span class="password-wrap"><input id="new-password" type="password" autocomplete="new-password" minlength="8" required><button class="password-toggle" type="button" data-target="new-password" aria-label="Mostrar senha" title="Mostrar senha">◉</button></span></label>
+          <label>Confirme a nova senha<span class="password-wrap"><input id="confirm-password" type="password" autocomplete="new-password" minlength="8" required><button class="password-toggle" type="button" data-target="confirm-password" aria-label="Mostrar senha" title="Mostrar senha">◉</button></span></label>
           <button class="primary full" id="recovery-submit" type="submit">Salvar nova senha</button>
         </form>
         <p id="auth-message" class="message hidden" role="status"></p>

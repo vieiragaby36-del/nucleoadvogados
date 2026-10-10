@@ -876,6 +876,15 @@ document.addEventListener("change", (event) => {
 });
 
 document.querySelectorAll("[data-auth-mode]").forEach((button) => button.addEventListener("click", () => setAuthMode(button.dataset.authMode)));
+document.querySelectorAll(".password-toggle").forEach((button) => button.addEventListener("click", () => {
+  const input = document.getElementById(button.dataset.target);
+  if (!input) return;
+  const visible = input.type === "text";
+  input.type = visible ? "password" : "text";
+  button.setAttribute("aria-pressed", String(!visible));
+  button.setAttribute("aria-label", visible ? "Mostrar senha" : "Ocultar senha");
+  button.title = visible ? "Mostrar senha" : "Ocultar senha";
+}));
 $("#auth-form").addEventListener("submit", submitAuth); $("#signup-back").addEventListener("click", () => { state.signupDraft = null; setAuthMode("signup"); }); $("#record-form").addEventListener("submit", saveRecord);
 $("#recovery-form").addEventListener("submit", submitRecovery);
 $("#search").addEventListener("input", (event) => { state.search = event.target.value.trim().toLowerCase(); render(); });
