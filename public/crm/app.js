@@ -259,6 +259,14 @@ async function loadPortal() {
       if (failed) throw failed.error;
       [state.contacts, state.cases, state.tasks, state.team] = [contacts, cases, tasks, team].map((result) => result.data || []);
       [state.lawyers, state.requestProfiles, state.requests, state.documents, state.trashDocuments, state.assignments, state.attendances, state.attendanceHistory, state.contactHistory] = [lawyers, requestProfiles, requests, documents, trashDocuments, assignments, attendances, attendanceHistory, contactHistory].map((result) => result.data || []);
+      const metadata = state.session.user.user_metadata || {};
+      if (profile.role === "client" && !state.requests.length && metadata.full_name && metadata.subject) {
+        const createdRequest = await supabase.from("client_requests").insert({ user_id: userId, full_name: String(metadata.full_name).trim(), phone: String(metadata.phone || "").trim(), subject: String(metadata.subject).trim(), description: String(metadata.description || "").trim() });
+        if (createdRequest.error && !/duplicate|unique/i.test(createdRequest.error.message || "")) throw createdRequest.error;
+        const refreshedRequests = await supabase.from("client_requests").select("*").eq("user_id", userId);
+        if (refreshedRequests.error) throw refreshedRequests.error;
+        state.requests = refreshedRequests.data || [];
+      }
       const guides = admin() ? await supabase.from("assistant_area_qa").select("*").order("created_at", { ascending: false }) : { data: [] };
       if (guides.error) throw guides.error;
       state.assistantKnowledge = guides.data || [];
