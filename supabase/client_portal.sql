@@ -26,8 +26,8 @@ create table if not exists public.client_documents (
   contact_id uuid references public.contacts(id) on delete set null,
   path text not null unique,
   file_name text not null check (char_length(file_name) between 1 and 255),
-  content_type text not null check (content_type in ('application/pdf','image/jpeg','image/png')),
-  size_bytes integer not null check (size_bytes between 1 and 10485760),
+  content_type text not null check (content_type in ('application/pdf','image/jpeg','image/png','image/webp','image/gif','audio/mpeg','audio/mp4','audio/wav','audio/ogg','video/mp4','video/webm','video/quicktime')),
+  size_bytes integer not null check (size_bytes between 1 and 52428800),
   created_at timestamptz not null default now(),
   check (left(path, 37) = user_id::text || '/')
 );
@@ -148,9 +148,9 @@ create policy contacts_staff_insert on public.contacts for insert to authenticat
 with check (private.is_crm_owner() or (kind='lead' and private.is_crm_staff()));
 
 insert into storage.buckets (id,name,public,file_size_limit,allowed_mime_types)
-values ('client-documents','client-documents',false,10485760,array['application/pdf','image/jpeg','image/png'])
-on conflict (id) do update set public=false, file_size_limit=10485760,
-  allowed_mime_types=array['application/pdf','image/jpeg','image/png'];
+values ('client-documents','client-documents',false,52428800,array['application/pdf','image/jpeg','image/png','image/webp','image/gif','audio/mpeg','audio/mp4','audio/wav','audio/ogg','video/mp4','video/webm','video/quicktime'])
+on conflict (id) do update set public=false, file_size_limit=52428800,
+  allowed_mime_types=array['application/pdf','image/jpeg','image/png','image/webp','image/gif','audio/mpeg','audio/mp4','audio/wav','audio/ogg','video/mp4','video/webm','video/quicktime'];
 create policy client_files_insert on storage.objects for insert to authenticated
 with check (bucket_id='client-documents'
   and (storage.foldername(name))[1]=(select auth.uid())::text
